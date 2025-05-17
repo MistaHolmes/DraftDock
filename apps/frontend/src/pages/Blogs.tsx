@@ -41,7 +41,9 @@ interface ButtonProps {
 interface InputProps {
   type: string;
   placeholder: string;
+  value?: string;            
   className?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 interface Blog8Props {
@@ -97,23 +99,29 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = "default
   );
 };
 
-const Input: React.FC<InputProps> = ({ type, placeholder, className }) => {
+const Input: React.FC<InputProps> = ({ type, placeholder, className, value, onChange }) => {
   return (
-    <input 
-      type={type} 
-      placeholder={placeholder} 
+    <input
+      type={type}
+      placeholder={placeholder}
       className={`flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors ${className || ""}`}
+      value={value}
+      onChange={onChange}
     />
   );
 };
 
 const BlogProps: React.FC<Blog8Props> = ({ posts }) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    navigate('/create-blog');
+  };
   return (
     <div className="flex flex-col items-center gap-4">
       {posts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">No blogs available</p>
-          <Button className="mt-4">Create your first blog</Button>
+          <Button className="gap-2" onClick={handleClick}>Create your first blog</Button>
         </div>
       ) : (
         posts.map(post => (
@@ -138,12 +146,30 @@ const FileManager: React.FC = () => {
   const { user, isLoaded } = useUser(); // Clerk user
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
 
   const navigate = useNavigate();
 
   const handleClick = () => {
     navigate('/create-blog');
   };
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredBlogs(blogs);
+    } else {
+      const lowerSearch = searchTerm.toLowerCase();
+      setFilteredBlogs(
+        blogs.filter(blog =>
+          blog.title.toLowerCase().includes(lowerSearch) ||
+          blog.summary.toLowerCase().includes(lowerSearch) ||
+          blog.tags?.some(tag => tag.toLowerCase().includes(lowerSearch))
+        )
+      );
+    }
+  }, [searchTerm, blogs]);
+
 
   useEffect(() => {
     axios
@@ -163,8 +189,10 @@ const FileManager: React.FC = () => {
             tags: b.tags || [],
           }))
           .sort((a:any, b:any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
+        
+          
         setBlogs(fetchedBlogs);
+        setFilteredBlogs(fetchedBlogs);
       })
       .catch((err) => {
         console.error("Error fetching blogs:", err);
@@ -229,7 +257,13 @@ const FileManager: React.FC = () => {
           <div className="w-96">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input type="search" placeholder="Search files..." className="pl-9" />
+              <Input
+                  type="search"
+                  placeholder="Search files..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e:any) => setSearchTerm(e.target.value)}
+                />
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -248,12 +282,12 @@ const FileManager: React.FC = () => {
         
         <main className="flex-1 overflow-y-auto pt-[4.5rem] px-6 pb-6 bg-gray-50">
           <div className="p-6">                    
-            {loading ? (
+           {loading ? (
               <div className="text-center py-12">
                 <p>Loading blogs...</p>
               </div>
             ) : (
-              <BlogProps posts={blogs} />
+              <BlogProps posts={filteredBlogs} />
             )}
           </div>
         </main>

@@ -173,7 +173,7 @@ const LandingPage: React.FC = () => {
             <a href="#" className="hover:text-black transition">Privacy Policy</a>
             <a href="#" className="hover:text-black transition">Terms of Service</a>
             <a href="#" className="hover:text-black transition">Contact</a>
-            <a href="#" className="hover:text-black transition">GitHub</a>
+            <a href="https://github.com/MistaHolmes" className="hover:text-black transition">GitHub</a>
           </div>
           <p className="text-xs text-gray-500">&copy; {new Date().getFullYear()} kreatify.app. All rights reserved.</p>
         </div>
