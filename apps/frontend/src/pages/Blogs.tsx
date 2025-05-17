@@ -145,19 +145,25 @@ const FileManager: React.FC = () => {
     navigate('/create-blog');
   };
 
-  useEffect(() => {  
+  useEffect(() => {
     axios
       .get("http://localhost:3000/api/blogs", { withCredentials: true })
       .then((res) => {
-        const fetchedBlogs = res.data.map((b: any) => ({
-          id: b.id,
-          title: b.title,
-          summary: b.content.slice(0, 150) + "...",
-          author: b.authorEmail || "Anonymous", 
-          authorId: b.authorId,
-          published: new Date(b.createdAt).toLocaleDateString(),
-          tags: b.tags || [],
-        }));
+        const fetchedBlogs = res.data
+          .map((b: any) => ({
+            id: b.id,
+            title: b.title,
+            summary: b.content.slice(0, 150) + "...",
+            author: b.author?.email 
+              ? b.author.email.split("@")[0].replace(/^./, (c:any) => c.toUpperCase()) 
+              : "Anonymous",
+            authorId: b.authorId,
+            updatedAt: new Date(b.updatedAt),
+            published: new Date(b.updatedAt).toLocaleDateString(), 
+            tags: b.tags || [],
+          }))
+          .sort((a:any, b:any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
         setBlogs(fetchedBlogs);
       })
       .catch((err) => {
@@ -167,6 +173,7 @@ const FileManager: React.FC = () => {
         setLoading(false);
       });
   }, [isLoaded]);
+
 
   return (
     <div className="flex h-screen overflow-hidden">

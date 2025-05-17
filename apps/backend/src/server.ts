@@ -53,7 +53,18 @@ app.get('/', async (req, res) => {
 
 // Public route - no auth required
 app.get('/api/blogs', async (req, res) => {
-  const blogs = await prisma.blog.findMany();
+  const blogs = await prisma.blog.findMany({
+    include: {
+      author: {
+        select: {
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: "desc", // optional, if you want newest first
+    },
+  });
   res.json(blogs);
 });
 
