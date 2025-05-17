@@ -176,7 +176,9 @@ const FileManager: React.FC = () => {
       {/* Sidebar */}
       <div className="w-64 flex-shrink-0 border-r bg-white fixed top-0 left-0 bottom-0 z-10">
         <div className="p-4">
-          <button className="text-xl font-bold bg-transparent">DraftDock</button>
+          <button className="text-xl font-bold bg-transparent"
+          onClick={() => navigate("/")}
+          >DraftDock</button>
         </div>
         <nav className="space-y-1 px-2">
           <NavItem href="#" icon={<span className="h-4 w-4">📊</span>} active>
