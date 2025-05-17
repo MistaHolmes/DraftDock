@@ -4,6 +4,7 @@ import axios from "axios";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { Spinner } from "@/components/ui/spinner";
 
 // Define the Blog type
 interface Blog {
@@ -113,21 +114,29 @@ const Input: React.FC<InputProps> = ({ type, placeholder, className, value, onCh
 
 const BlogProps: React.FC<Blog8Props> = ({ posts }) => {
   const navigate = useNavigate();
-  const handleClick = () => {
-    navigate('/create-blog');
+
+  const handleClick = (id: string) => {
+    navigate(`/blog/${id}`); // Placeholder route for future
   };
+
   return (
     <div className="flex flex-col items-center gap-4">
       {posts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">No blogs available</p>
-          <Button className="gap-2" onClick={handleClick}>Create your first blog</Button>
+          <Button className="gap-2" onClick={() => navigate('/create-blog')}>
+            Create your first blog
+          </Button>
         </div>
       ) : (
         posts.map(post => (
           <div
             key={post.id}
-            className="w-full max-w-3xl border rounded-lg px-6 py-4 shadow-sm bg-white"
+            role="button"
+            tabIndex={0}
+            onClick={() => handleClick(post.id)}
+            onKeyDown={(e) => e.key === 'Enter' && handleClick(post.id)}
+            className="w-full max-w-3xl border rounded-lg px-6 py-4 shadow-sm bg-white cursor-pointer hover:shadow-md transition-shadow"
           >
             <div className="flex justify-between text-sm text-gray-500 mb-2">
               <span>{post.published}</span>
@@ -141,6 +150,7 @@ const BlogProps: React.FC<Blog8Props> = ({ posts }) => {
     </div>
   );
 };
+
 
 const FileManager: React.FC = () => {
   const { user, isLoaded } = useUser(); // Clerk user
@@ -259,7 +269,7 @@ const FileManager: React.FC = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
                   type="search"
-                  placeholder="Search files..."
+                  placeholder="Search titles..."
                   className="pl-9"
                   value={searchTerm}
                   onChange={(e:any) => setSearchTerm(e.target.value)}
@@ -283,8 +293,11 @@ const FileManager: React.FC = () => {
         <main className="flex-1 overflow-y-auto pt-[4.5rem] px-6 pb-6 bg-gray-50">
           <div className="p-6">                    
            {loading ? (
-              <div className="text-center py-12">
-                <p>Loading blogs...</p>
+              <div className="fixed inset-0 flex flex-col items-center justify-center z-50">
+                <Spinner size="xl"/>
+                <p className="mt-4 text-m text-gray-600">
+                  Docking Your Blog Posts ...
+                </p>
               </div>
             ) : (
               <BlogProps posts={filteredBlogs} />
