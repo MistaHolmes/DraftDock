@@ -171,6 +171,7 @@ export declare class Decimal {
     times(n: Decimal.Value): Decimal;
     mul(n: Decimal.Value) : Decimal;
 
+
     toBinary(significantDigits?: number): string;
     toBinary(significantDigits: number, rounding: Decimal.Rounding): string;
 

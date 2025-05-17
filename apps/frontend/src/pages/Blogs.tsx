@@ -1,46 +1,165 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Bell, Plus, Search } from "lucide-react";
 import axios from "axios";
+import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
-import { Blog8 } from "@/components/Blog8";
-import { SignedIn, UserButton } from '@clerk/clerk-react';
 import { useNavigate } from "react-router-dom";
-import Loading from "@/components/ui/loading";
 
+// Define the Blog type
 interface Blog {
   id: string;
   title: string;
-  content: string;
   summary: string;
-  label: string;
+  label?: string;
   author: string;
+  authorId: string;
   published: string;
-  image: string;
+  image?: string;
   tags?: string[];
 }
 
-export default function UserBlogs() {
-  const { user } = useUser();
+interface NavItemProps {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  active?: boolean;
+}
+
+interface FolderItemProps {
+  href: string;
+  children: React.ReactNode;
+}
+
+interface ButtonProps {
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "ghost";
+  size?: "default" | "icon";
+  onClick?: () => void;
+}
+
+interface InputProps {
+  type: string;
+  placeholder: string;
+  className?: string;
+}
+
+interface Blog8Props {
+  posts: Blog[];
+}
+
+const NavItem: React.FC<NavItemProps> = ({ href, icon, children, active }) => {
+  return (
+    <a
+      href={href}
+      className={`flex items-center gap-2 px-3 py-2 text-sm text-gray-700 rounded-lg ${active ? "bg-gray-100" : ""}`}
+    >
+      {icon}
+      <span>{children}</span>
+    </a>
+  );
+};
+
+const FolderItem: React.FC<FolderItemProps> = ({ href, children }) => {
+  return (
+    <a href={href} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+        />
+      </svg>
+      <span>{children}</span>
+    </a>
+  );
+};
+
+// Button component
+const Button: React.FC<ButtonProps> = ({ children, className, variant = "default", size = "default", onClick }) => {
+  const baseClass = "inline-flex items-center justify-center rounded-md font-medium transition-colors";
+  const variantClasses = {
+    default: "bg-black text-white hover:bg-black/70",
+    ghost: "bg-transparent hover:bg-gray-100"
+  };
+  const sizeClasses = {
+    default: "h-9 px-4 py-2",
+    icon: "h-9 w-9"
+  };
+  
+  return (
+    <button 
+      onClick={onClick}
+      className={`${baseClass} ${variantClasses[variant]} ${sizeClasses[size]} ${className || ""}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Input component
+const Input: React.FC<InputProps> = ({ type, placeholder, className }) => {
+  return (
+    <input 
+      type={type} 
+      placeholder={placeholder} 
+      className={`flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors ${className || ""}`}
+    />
+  );
+};
+
+// Blog component to display all blogs
+const BlogProps: React.FC<Blog8Props> = ({ posts }) => {
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {posts.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No blogs available</p>
+          <Button className="mt-4">Create your first blog</Button>
+        </div>
+      ) : (
+        posts.map(post => (
+          <div
+            key={post.id}
+            className="w-full max-w-3xl border rounded-lg px-6 py-4 shadow-sm bg-white"
+          >
+            <div className="flex justify-between text-sm text-gray-500 mb-2">
+              <span>{post.published}</span>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">{post.title}</h3>
+            <p className="text-gray-700 text-sm">{post.summary}</p>
+            <div className="mt-4 text-sm text-gray-600 font-medium">By {post.author}</div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+const FileManager: React.FC = () => {
+  const { user, isLoaded } = useUser(); // Clerk user
   const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useNavigate();
+  const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    if (!user) return;
+  const navigate = useNavigate();
 
+  const handleClick = () => {
+    navigate('/create-blog');
+  };
+
+  useEffect(() => {  
     axios
-      .get("http://localhost:3000/api/blogs", {
-        withCredentials: true,
-      })
+      .get("http://localhost:3000/api/blogs", { withCredentials: true })
       .then((res) => {
         const fetchedBlogs = res.data.map((b: any) => ({
           id: b.id,
           title: b.title,
           summary: b.content.slice(0, 150) + "...",
-          label: "User Blog",
-          author: user.fullName || "Anonymous",
+          author: b.authorEmail || "Anonymous", // Display email of creator
+          authorId: b.authorId,
           published: new Date(b.createdAt).toLocaleDateString(),
-          image: "/images/block/placeholder-dark-1.svg",
-          tags: [],
+          tags: b.tags || [],
         }));
         setBlogs(fetchedBlogs);
       })
@@ -50,49 +169,110 @@ export default function UserBlogs() {
       .finally(() => {
         setLoading(false);
       });
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen w-full">
-        <Loading />
-      </div>
-    );
-  }
-
+  }, [isLoaded]);
 
   return (
-    <div className="min-h-screen bg-gray">
-      {/* Top bar */}
-      <div className="flex justify-between items-center px-5 py-2 border-b border-gray-300">
-        {/* Left: DraftDock button */}
-        <button
-          onClick={() => router("/")}
-          className="text-black text-xl font-extrabold tracking-wide"
-        >
-          DraftDock
-        </button>
-
-        {/* Right: Write button + UserButton */}
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => router("/create-blog")}
-            className="flex items-center gap-x-2 border px-3 py-2 text-gray-700 font-medium rounded hover:bg-gray-100 transition"
-          >Draft
-            <img
-              src="/write.svg"
-              alt="Write"
-              className="w-5 h-5"
-            />
-          </button>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-64 flex-shrink-0 border-r bg-white fixed top-0 left-0 bottom-0 z-10">
+        <div className="p-4">
+          <button className="text-xl font-bold bg-transparent">DraftDock</button>
         </div>
+        <nav className="space-y-1 px-2">
+          <NavItem href="#" icon={<span className="h-4 w-4">📊</span>} active>
+            Dock
+          </NavItem>
+          <NavItem
+            href="#"
+            icon={
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  d="M15 3v18M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            }
+          >
+            Canvas
+          </NavItem>
+          <NavItem
+            href="#"
+            icon={
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6m-3 4v6m-3-3h6"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            }
+          >
+            Drafts
+          </NavItem>
+          
+          {/* Only show user blogs section if user is signed in */}
+          {isLoaded && user && (
+            <div className="py-3">
+              <div className="px-3 text-xs font-medium uppercase text-gray-500">
+                Your Blogs
+              </div>
+              <div className="mt-2">
+                {blogs.filter((blog) => blog.authorId === user.id).length > 0 ? (
+                  blogs
+                    .filter((blog) => blog.authorId === user.id)
+                    .map((blog) => (
+                      <FolderItem key={blog.id} href={`/blogs/${blog.id}`}>
+                        {blog.title}
+                      </FolderItem>
+                    ))
+                ) : (
+                  <div className="text-sm text-gray-400 px-3">No blogs yet</div>
+                )}
+              </div>
+            </div>
+          )}
+        </nav>
       </div>
 
-      {/* Blogs list */}
-      <Blog8 posts={blogs} />
+      {/* Main content */}
+        <div className="ml-64 flex-1 flex flex-col h-full">
+        <header className="fixed top-0 left-64 right-0 z-10 border-b bg-white px-6 py-4 flex items-center justify-between">
+          <div className="w-96">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input type="search" placeholder="Search files..." className="pl-9" />
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button className="gap-2" onClick={handleClick}>
+              <Plus className="h-4 w-4" />
+              Create
+            </Button>
+            <Button variant="ghost" size="icon">
+              <Bell className="h-4 w-4" />
+            </Button>
+            <SignedIn>           
+              <UserButton afterSignOutUrl="/"/>
+            </SignedIn>
+          </div>
+        </header>
+        
+        <main className="flex-1 overflow-y-auto pt-[4.5rem] px-6 pb-6 bg-gray-50">
+          <div className="p-6">                    
+            {loading ? (
+              <div className="text-center py-12">
+                <p>Loading blogs...</p>
+              </div>
+            ) : (
+              <BlogProps posts={blogs} />
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
-}
+};
+
+export default FileManager;

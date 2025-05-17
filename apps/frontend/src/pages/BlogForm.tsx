@@ -41,7 +41,6 @@ export function BlogForm() {
       const token = await getToken();
       console.log(token);
       if (!token) throw new Error("Authentication required");
-
       const response = await axios.post(
         "http://localhost:3000/api/create-blog",
         { ...formData, published: !isDraft },
@@ -53,7 +52,7 @@ export function BlogForm() {
           withCredentials: true,
         }
       );
-
+      
       if (response.status === 201) {
         navigate("/blogs");
       }
@@ -71,8 +70,17 @@ export function BlogForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <UserButton />
-      <button onClick={()=>{navigate("/blogs")}}>Home</button>
+      <header className="flex items-center justify-between px-6 py-4 bg-white shadow">
+        <button
+          className="text-xl font-semibold text-gray-900"
+          onClick={() => navigate("/blogs")}
+        >
+          DraftDock
+        </button>
+        <div>
+          <UserButton />
+        </div>
+      </header>
       <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Post</h1>
