@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Bell, Plus, Search } from "lucide-react";
+import { Bell, Plus, Search , LayoutGrid, FileDiff, Eraser } from "lucide-react";
 import axios from "axios";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
@@ -76,7 +76,6 @@ const FolderItem: React.FC<FolderItemProps> = ({ href, children }) => {
   );
 };
 
-// Button component
 const Button: React.FC<ButtonProps> = ({ children, className, variant = "default", size = "default", onClick }) => {
   const baseClass = "inline-flex items-center justify-center rounded-md font-medium transition-colors";
   const variantClasses = {
@@ -98,7 +97,6 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = "default
   );
 };
 
-// Input component
 const Input: React.FC<InputProps> = ({ type, placeholder, className }) => {
   return (
     <input 
@@ -109,7 +107,6 @@ const Input: React.FC<InputProps> = ({ type, placeholder, className }) => {
   );
 };
 
-// Blog component to display all blogs
 const BlogProps: React.FC<Blog8Props> = ({ posts }) => {
   return (
     <div className="flex flex-col items-center gap-4">
@@ -156,7 +153,7 @@ const FileManager: React.FC = () => {
           id: b.id,
           title: b.title,
           summary: b.content.slice(0, 150) + "...",
-          author: b.authorEmail || "Anonymous", // Display email of creator
+          author: b.authorEmail || "Anonymous", 
           authorId: b.authorId,
           published: new Date(b.createdAt).toLocaleDateString(),
           tags: b.tags || [],
@@ -181,35 +178,16 @@ const FileManager: React.FC = () => {
           >DraftDock</button>
         </div>
         <nav className="space-y-1 px-2">
-          <NavItem href="#" icon={<span className="h-4 w-4">📊</span>} active>
+          <NavItem href="#" icon={<LayoutGrid />} active>
             Dock
           </NavItem>
           <NavItem
             href="#"
-            icon={
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  d="M15 3v18M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            }
+            icon={<Eraser/>}
           >
             Canvas
           </NavItem>
-          <NavItem
-            href="#"
-            icon={
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6m-3 4v6m-3-3h6"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            }
+          <NavItem href="#" icon={<FileDiff/> }
           >
             Drafts
           </NavItem>
@@ -256,7 +234,7 @@ const FileManager: React.FC = () => {
               <Bell className="h-4 w-4" />
             </Button>
             <SignedIn>           
-              <UserButton afterSignOutUrl="/"/>
+              <UserButton />
             </SignedIn>
           </div>
         </header>

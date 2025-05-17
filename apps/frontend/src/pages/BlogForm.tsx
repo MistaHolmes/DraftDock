@@ -13,7 +13,7 @@ export function BlogForm() {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    published: true // Default to published
+    published: true
   });
   const [errors, setErrors] = useState<{
     title?: string;
