@@ -70,9 +70,10 @@ export function BlogForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="flex items-center justify-between px-6 py-4 bg-white shadow">
+      {/* Responsive header */}
+      <header className="flex items-center justify-between px-3 sm:px-6 py-4 bg-white shadow">
         <button
-          className="text-xl font-semibold text-gray-900"
+          className="text-lg sm:text-xl font-semibold text-gray-900"
           onClick={() => navigate("/blogs")}
         >
           DraftDock
@@ -81,11 +82,11 @@ export function BlogForm() {
           <UserButton />
         </div>
       </header>
-      <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <main className="container mx-auto py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Post</h1>
-          
-          <form className="space-y-6 bg-white p-6 rounded-lg shadow">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Create New Post</h1>
+          <form className="space-y-4 sm:space-y-6 bg-white p-4 sm:p-6 rounded-lg shadow">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
@@ -94,6 +95,7 @@ export function BlogForm() {
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
                 placeholder="Enter post title"
                 aria-invalid={!!errors.title}
+                className="w-full"
               />
               {errors.title && (
                 <p className="text-sm text-red-500">{errors.title}</p>
@@ -107,7 +109,7 @@ export function BlogForm() {
                 value={formData.content}
                 onChange={(e) => setFormData({...formData, content: e.target.value})}
                 placeholder="Write your content here..."
-                className="min-h-[300px]"
+                className="min-h-[200px] sm:min-h-[300px] w-full"
                 aria-invalid={!!errors.content}
               />
               {errors.content && (
@@ -119,11 +121,11 @@ export function BlogForm() {
               <p className="text-sm text-red-500">{errors.server}</p>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex flex-col xs:flex-row gap-3 sm:gap-4">
               <Button
                 type="button"
                 onClick={() => navigate("/blogs")}
-                variant="outline"
+                className="w-full xs:w-auto"
               >
                 Cancel
               </Button>
@@ -131,6 +133,7 @@ export function BlogForm() {
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
                 disabled={isSubmitting}
+                className="w-full xs:w-auto"
               >
                 {isSubmitting ? "Saving..." : "Save Draft"}
               </Button>
@@ -138,7 +141,7 @@ export function BlogForm() {
                 type="submit"
                 onClick={(e) => handleSubmit(e, false)}
                 disabled={isSubmitting}
-                className="bg-primary text-white"
+                className="bg-primary text-white w-full xs:w-auto"
               >
                 {isSubmitting ? "Publishing..." : "Publish"}
               </Button>

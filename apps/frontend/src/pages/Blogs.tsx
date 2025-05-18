@@ -219,7 +219,7 @@ const FileManager: React.FC = () => {
       <div className="w-64 flex-shrink-0 border-r bg-white fixed top-0 left-0 bottom-0 z-10">
         <div className="p-4">
           <button className="text-xl font-bold bg-transparent"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/landing")}
           >DraftDock</button>
         </div>
         <nav className="space-y-1 px-2">
