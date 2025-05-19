@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Bell, Plus, Search , LayoutGrid, FileDiff, Eraser } from "lucide-react";
 import axios from "axios";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
@@ -113,52 +113,15 @@ const Input: React.FC<InputProps> = ({ type, placeholder, className, value, onCh
   );
 };
 
-const BlogProps: React.FC<Blog8Props> = ({ posts }) => {
-  const navigate = useNavigate();
-
-  const handleClick = (id: string) => {
-    navigate(`/blog/${id}`); // Placeholder route for future
-  };
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      {posts.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No blogs available</p>
-          <Button className="gap-2" onClick={() => navigate('/create-blog')}>
-            Create your first blog
-          </Button>
-        </div>
-      ) : (
-        posts.map(post => (
-          <div
-            key={post.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => handleClick(post.id)}
-            onKeyDown={(e) => e.key === 'Enter' && handleClick(post.id)}
-            className="w-full max-w-3xl border rounded-lg px-6 py-4 shadow-sm bg-white cursor-pointer hover:shadow-md transition-shadow"
-          >
-            <div className="flex justify-between text-sm text-gray-500 mb-2">
-              <span>{post.published}</span>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">{post.title}</h3>
-            <p className="text-gray-700 text-sm">{post.summary}</p>
-            <div className="mt-4 text-sm text-gray-600 font-medium">By {post.author}</div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-};
-
-
 const FileManager: React.FC = () => {
-  const { user, isLoaded } = useUser(); // Clerk user
+  const { isLoaded } = useUser(); // Clerk user
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
+  const [userBlogs, setUserBlogs] = useState<Blog[]>([]);  
+  const hasFetched = useRef(false); // prevents multiple fetches
+
 
   const navigate = useNavigate();
 
@@ -167,52 +130,58 @@ const FileManager: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredBlogs(blogs);
-    } else {
-      const lowerSearch = searchTerm.toLowerCase();
-      setFilteredBlogs(
-        blogs.filter(blog =>
-          blog.title.toLowerCase().includes(lowerSearch) ||
-          blog.summary.toLowerCase().includes(lowerSearch) ||
-          blog.tags?.some(tag => tag.toLowerCase().includes(lowerSearch))
-        )
-      );
-    }
-  }, [searchTerm, blogs]);
+  if (!isLoaded || hasFetched.current) return;
 
+  hasFetched.current = true;
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/blogs", { withCredentials: true })
-      .then((res) => {
-        const fetchedBlogs = res.data
-          .filter((b:any)=> b.published === true)
-          .map((b: any) => ({
-            id: b.id,
-            title: b.title,
-            summary: b.content.slice(0, 150) + "...",
-            author: b.author?.email 
-              ? b.author.email.split("@")[0].replace(/^./, (c:any) => c.toUpperCase()) 
-              : "Anonymous",
-            authorId: b.authorId,
-            updatedAt: new Date(b.updatedAt),
-            published: new Date(b.updatedAt).toLocaleDateString(), 
-            tags: b.tags || [],
-          }))
-          .sort((a:any, b:any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-        
-        setBlogs(fetchedBlogs);
-        setFilteredBlogs(fetchedBlogs);
-      })
-      .catch((err) => {
-        console.error("Error fetching blogs:", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [isLoaded]);
+  axios
+    .get("http://localhost:3000/api/blogs", { withCredentials: true })
+    .then((res) => {
+      const fetchedBlogs = res.data
+        .filter((b:any)=> b.published === true)
+        .map((b: any) => ({
+          id: b.id,
+          title: b.title,
+          summary: b.content.slice(0, 150) + "...",
+          author: b.author?.email 
+            ? b.author.email.split("@")[0].replace(/^./, (c:any) => c.toUpperCase()) 
+            : "Anonymous",
+          authorId: b.authorId,
+          updatedAt: new Date(b.updatedAt),
+          published: new Date(b.updatedAt).toLocaleDateString(), 
+          tags: b.tags || [],
+        }))
+        .sort((a:any, b:any) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
+      setBlogs(fetchedBlogs);
+      setFilteredBlogs(fetchedBlogs);
+    })
+    .catch((err) => {
+      console.error("Error fetching blogs:", err);
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+
+  axios
+    .get("http://localhost:3000/api/user/blogs", { withCredentials: true })
+    .then((res) => {
+      const fetchedUserBlogs = res.data.blogs.map((b: any) => ({
+        id: b.id,
+        title: b.title,
+        summary: b.content.slice(0, 150) + "...",
+        authorId: b.authorId,
+        updatedAt: new Date(b.updatedAt),
+        published: new Date(b.updatedAt).toLocaleDateString(),
+        tags: b.tags || [],
+      }));
+      setUserBlogs(fetchedUserBlogs);
+    })
+    .catch((err) => {
+      console.error("Error fetching user blogs:", err);
+    });
+
+}, []);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -238,27 +207,19 @@ const FileManager: React.FC = () => {
             Drafts
           </NavItem>
           
-          {/* Only show user blogs section if user is signed in */}
-          {isLoaded && user && (
-            <div className="py-3">
-              <div className="px-3 text-xs font-medium uppercase text-gray-500">
-                Your Blogs
-              </div>
-              <div className="mt-2">
-                {blogs.filter((blog) => blog.authorId === user.id).length > 0 ? (
-                  blogs
-                    .filter((blog) => blog.authorId === user.id)
-                    .map((blog) => (
-                      <FolderItem key={blog.id} href={`/blogs/${blog.id}`}>
-                        {blog.title}
-                      </FolderItem>
-                    ))
-                ) : (
-                  <div className="text-sm text-gray-400 px-3">No blogs yet</div>
-                )}
-              </div>
+          {/*  show user blogs section  */}
+          {userBlogs.length > 0 && (
+            <div className="mt-4 px-2">
+              <h4 className="text-xs text-gray-500 uppercase mb-1">Your Blogs</h4>
+              {userBlogs.map((blog) => (
+                <FolderItem key={blog.id} href={`/blog/${blog.id}`}>
+                  {blog.title.length > 20 ? blog.title.slice(0, 20) + "..." : blog.title}
+                </FolderItem>
+              ))}
             </div>
           )}
+
+
         </nav>
       </div>
 
