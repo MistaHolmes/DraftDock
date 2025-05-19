@@ -5,6 +5,7 @@ import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
+import BlogList from "@/components/BlogList";
 
 // Define the Blog type
 interface Blog {
@@ -186,6 +187,7 @@ const FileManager: React.FC = () => {
       .get("http://localhost:3000/api/blogs", { withCredentials: true })
       .then((res) => {
         const fetchedBlogs = res.data
+          .filter((b:any)=> b.published === true)
           .map((b: any) => ({
             id: b.id,
             title: b.title,
@@ -200,7 +202,6 @@ const FileManager: React.FC = () => {
           }))
           .sort((a:any, b:any) => b.updatedAt.getTime() - a.updatedAt.getTime());
         
-          
         setBlogs(fetchedBlogs);
         setFilteredBlogs(fetchedBlogs);
       })
@@ -300,7 +301,7 @@ const FileManager: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <BlogProps posts={filteredBlogs} />
+              <BlogList posts={filteredBlogs} />
             )}
           </div>
         </main>

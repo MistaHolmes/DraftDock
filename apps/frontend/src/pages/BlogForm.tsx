@@ -68,6 +68,13 @@ export function BlogForm() {
     }
   };
 
+
+  const handleDraftSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    handleSubmit(e as unknown as React.FormEvent, true);
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Responsive header */}
@@ -131,7 +138,7 @@ export function BlogForm() {
               </Button>
               <Button
                 type="button"
-                onClick={(e) => handleSubmit(e, true)}
+                onClick={handleDraftSubmit}
                 disabled={isSubmitting}
                 className="w-full xs:w-auto"
               >
