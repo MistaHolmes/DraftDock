@@ -7,6 +7,14 @@ import http from 'http';
 import { WebSocketServer } from 'ws';
 import cors  from 'cors';
 import bodyParser from 'body-parser';
+import { createClient } from 'redis';
+
+const redisClient = createClient({
+  url: 'redis://localhost:6379',
+});
+
+redisClient.connect().catch(console.error);
+
 
 dotenv.config();
 
@@ -53,19 +61,35 @@ app.get('/', async (req, res) => {
 
 // Public route - no auth required
 app.get('/api/blogs', async (req, res) => {
-  const blogs = await prisma.blog.findMany({
-    include: {
-      author: {
-        select: {
-          email: true,
+  try {
+    const cacheKey = 'blogs:all';
+    const cachedBlogs = await redisClient.get(cacheKey);
+
+    if (cachedBlogs) {
+      console.log('Serving from Redis cache');
+      res.json(JSON.parse(cachedBlogs));
+    }
+
+    const blogs = await prisma.blog.findMany({
+      include: {
+        author: {
+          select: {
+            email: true,
+          },
         },
       },
-    },
-    orderBy: {
-      updatedAt: "desc", // optional, if you want newest first
-    },
-  });
-  res.json(blogs);
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    await redisClient.setEx(cacheKey, 60, JSON.stringify(blogs)); // TTL 60s
+    console.log('Serving from DB and caching in Redis');
+    res.json(blogs);
+  } catch (err) {
+    console.error('Error fetching blogs:', err);
+    res.status(500).json({ error: 'Failed to fetch blogs' });
+  }
 });
 
 // Protected routes - add requireAuth as middleware
@@ -113,10 +137,15 @@ app.get('/api/user/blogs', requireAuth(), async (req, res) => {
   try {
     const user = await syncUser(req);
     if (!user) res.status(401).json({ message: "User Not Authenticated" });
-
+    const cacheKey = `user_blogs:${user.id}`;
+    const cachedBlogs = await redisClient.get(cacheKey);
+    if (cachedBlogs) {
+      res.json({ blogs: JSON.parse(cachedBlogs) });
+    }
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
     });
+    await redisClient.setEx(cacheKey, 60, JSON.stringify(blogs));
     res.json({ blogs });
   } catch (error) {
     console.error(error);

@@ -48,9 +48,6 @@ interface InputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-interface Blog8Props {
-  posts: Blog[];
-}
 
 const NavItem: React.FC<NavItemProps> = ({ href, icon, children, active }) => {
   return (
@@ -114,74 +111,90 @@ const Input: React.FC<InputProps> = ({ type, placeholder, className, value, onCh
 };
 
 const FileManager: React.FC = () => {
-  const { isLoaded } = useUser(); // Clerk user
-  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const { user, isLoaded } = useUser(); // Clerk user
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
   const [userBlogs, setUserBlogs] = useState<Blog[]>([]);  
-  const hasFetched = useRef(false); // prevents multiple fetches
-
-
   const navigate = useNavigate();
-
+  
   const handleClick = () => {
     navigate('/create-blog');
   };
 
+// Outside component to cache user blogs persistently
+let cachedUserBlogs: any[] | null = null;
+
+const hasFetchedAllBlogs = useRef(false);
+const hasFetchedUserBlogs = useRef(false);
+
   useEffect(() => {
-  if (!isLoaded || hasFetched.current) return;
+    if (!isLoaded || !user || hasFetchedAllBlogs.current) return;
+    hasFetchedAllBlogs.current = true;
 
-  hasFetched.current = true;
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-  axios
-    .get("http://localhost:3000/api/blogs", { withCredentials: true })
-    .then((res) => {
-      const fetchedBlogs = res.data
-        .filter((b:any)=> b.published === true)
-        .map((b: any) => ({
-          id: b.id,
-          title: b.title,
-          summary: b.content.slice(0, 150) + "...",
-          author: b.author?.email 
-            ? b.author.email.split("@")[0].replace(/^./, (c:any) => c.toUpperCase()) 
-            : "Anonymous",
-          authorId: b.authorId,
-          updatedAt: new Date(b.updatedAt),
-          published: new Date(b.updatedAt).toLocaleDateString(), 
-          tags: b.tags || [],
-        }))
-        .sort((a:any, b:any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    axios
+      .get(`${API_URL}/api/blogs`, { withCredentials: true })
+      .then((res) => {
+        const fetchedBlogs = res.data
+          .filter((b: any) => b.published === true)
+          .map((b: any) => ({
+            id: b.id,
+            title: b.title,
+            summary: b.content.slice(0, 150) + "...",
+            author: b.author?.email
+              ? b.author.email.split("@")[0].replace(/^./, (c: any) => c.toUpperCase())
+              : "Anonymous",
+            authorId: b.authorId,
+            updatedAt: new Date(b.updatedAt),
+            published: new Date(b.updatedAt).toLocaleDateString(),
+            tags: b.tags || [],
+          }))
+          .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
-      setBlogs(fetchedBlogs);
-      setFilteredBlogs(fetchedBlogs);
-    })
-    .catch((err) => {
-      console.error("Error fetching blogs:", err);
-    })
-    .finally(() => {
-      setLoading(false);
-    });
+        setFilteredBlogs(fetchedBlogs);
+      })
+      .catch((err) => {
+        console.error("Error fetching blogs:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [user, isLoaded]);
 
-  axios
-    .get("http://localhost:3000/api/user/blogs", { withCredentials: true })
-    .then((res) => {
-      const fetchedUserBlogs = res.data.blogs.map((b: any) => ({
-        id: b.id,
-        title: b.title,
-        summary: b.content.slice(0, 150) + "...",
-        authorId: b.authorId,
-        updatedAt: new Date(b.updatedAt),
-        published: new Date(b.updatedAt).toLocaleDateString(),
-        tags: b.tags || [],
-      }));
-      setUserBlogs(fetchedUserBlogs);
-    })
-    .catch((err) => {
-      console.error("Error fetching user blogs:", err);
-    });
+  useEffect(() => {
+    if (!isLoaded || !user || hasFetchedUserBlogs.current) {
+      if (cachedUserBlogs) setUserBlogs(cachedUserBlogs);
+      return;
+    }
+    hasFetchedUserBlogs.current = true;
 
-}, []);
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    if (cachedUserBlogs) {
+      setUserBlogs(cachedUserBlogs);
+    } else {
+      axios
+        .get(`${API_URL}/api/user/blogs`, { withCredentials: true })
+        .then((res) => {
+          const fetchedUserBlogs = res.data.blogs.map((b: any) => ({
+            id: b.id,
+            title: b.title,
+            summary: b.content.slice(0, 150) + "...",
+            authorId: b.authorId,
+            updatedAt: new Date(b.updatedAt),
+            published: new Date(b.updatedAt).toLocaleDateString(),
+            tags: b.tags || [],
+          }));
+          cachedUserBlogs = fetchedUserBlogs;
+          setUserBlogs(fetchedUserBlogs);
+        })
+        .catch((err) => {
+          console.error("Error fetching user blogs:", err);
+        });
+    }
+  }, [user, isLoaded]);
 
   return (
     <div className="flex h-screen overflow-hidden">

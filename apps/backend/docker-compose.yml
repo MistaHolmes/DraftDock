@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7.2
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - blognet
+
+  # backend:
+  #   build:
+  #     context: ./apps/backend
+  #   container_name: backend
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379
+  #     - DATABASE_URL=your_postgres_connection_string
+  #     - CLERK_SECRET_KEY=your_clerk_secret_key
+  #   ports:
+  #     - '3000:3000'
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - blognet
+
+volumes:
+  redis-data:
+
+networks:
+  blognet:
+    driver: bridge
