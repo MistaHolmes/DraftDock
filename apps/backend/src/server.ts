@@ -151,7 +151,7 @@ app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
       where: { authorId: user.id },
     });
     
-    await redisClient.setEx(cacheKey, 60, JSON.stringify(blogs));
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));
     return res.json({ blogs });
   } catch (error) {
     console.error(error);
