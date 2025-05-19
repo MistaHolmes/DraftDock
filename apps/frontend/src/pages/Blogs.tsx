@@ -208,18 +208,21 @@ const FileManager: React.FC = () => {
           </NavItem>
           
           {/*  show user blogs section  */}
-          {userBlogs.length > 0 && (
-            <div className="mt-4 px-2">
-              <h4 className="text-xs text-gray-500 uppercase mb-1">Your Blogs</h4>
-              {userBlogs.map((blog) => (
+
+          <div className="mt-4 px-2">
+            <h4 className="text-xs font-bold text-gray-500 uppercase mb-1">Your Blogs</h4>
+            {userBlogs.length > 0 ? (
+              userBlogs.map((blog) => (
                 <FolderItem key={blog.id} href={`/blog/${blog.id}`}>
                   {blog.title.length > 20 ? blog.title.slice(0, 20) + "..." : blog.title}
                 </FolderItem>
-              ))}
-            </div>
-          )}
-
-
+              ))
+            ) : (
+              <p className="text-gray-400 italic py-2 px-4 max-w-xs mx-auto text-center">
+                Draft and Dock a Blog.
+              </p>
+            )}
+          </div>
         </nav>
       </div>
 
