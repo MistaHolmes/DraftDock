@@ -60,14 +60,14 @@ app.get('/', async (req, res) => {
 });
 
 // Public route - no auth required
-app.get('/api/blogs', async (req, res) => {
+app.get('/api/blogs', async (req, res:any) => {
   try {
     const cacheKey = 'blogs:all';
     const cachedBlogs = await redisClient.get(cacheKey);
 
     if (cachedBlogs) {
       console.log('Serving from Redis cache');
-      res.json(JSON.parse(cachedBlogs));
+      return res.json(JSON.parse(cachedBlogs));
     }
 
     const blogs = await prisma.blog.findMany({
@@ -85,10 +85,10 @@ app.get('/api/blogs', async (req, res) => {
 
     await redisClient.setEx(cacheKey, 60, JSON.stringify(blogs)); // TTL 60s
     console.log('Serving from DB and caching in Redis');
-    res.json(blogs);
+    return res.json(blogs);
   } catch (err) {
     console.error('Error fetching blogs:', err);
-    res.status(500).json({ error: 'Failed to fetch blogs' });
+    return res.status(500).json({ error: 'Failed to fetch blogs' });
   }
 });
 
@@ -104,14 +104,14 @@ app.get('/api/user', requireAuth(), async (req, res) => {
   }
 });
 
-app.post('/api/create-blog', requireAuth(), async (req, res) => {
+app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
   try {
     const user = await syncUser(req);
 
     const { title, content, published } = req.body;
 
     if (!title || !content || typeof published !== "boolean") {
-      res.status(400).json({ message: "Missing or invalid fields" });
+      return res.status(400).json({ message: "Missing or invalid fields" });
     }
 
     const newBlog = await prisma.blog.create({
@@ -123,33 +123,39 @@ app.post('/api/create-blog', requireAuth(), async (req, res) => {
       },
     });
 
-    res.status(201).json(newBlog);
+    return res.status(201).json(newBlog);
   } catch (error) {
     console.error("Failed to create blog:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Blog creation failed",
       error: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
-app.get('/api/user/blogs', requireAuth(), async (req, res) => {
+app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
   try {
     const user = await syncUser(req);
-    if (!user) res.status(401).json({ message: "User Not Authenticated" });
+    if (!user) {
+      return res.status(401).json({ message: "User Not Authenticated" });
+    }
+    
     const cacheKey = `user_blogs:${user.id}`;
     const cachedBlogs = await redisClient.get(cacheKey);
+    
     if (cachedBlogs) {
-      res.json({ blogs: JSON.parse(cachedBlogs) });
+      return res.json({ blogs: JSON.parse(cachedBlogs) });
     }
+    
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
     });
+    
     await redisClient.setEx(cacheKey, 60, JSON.stringify(blogs));
-    res.json({ blogs });
+    return res.json({ blogs });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to fetch user blogs" });
+    return res.status(500).json({ message: "Failed to fetch user blogs" });
   }
 });
 
