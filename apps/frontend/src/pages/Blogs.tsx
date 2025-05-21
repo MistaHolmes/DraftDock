@@ -137,11 +137,13 @@ const Blogs: React.FC = () => {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar Component */}
-      <Sidebar activePage="dock" />
+        <div className="w-64 flex-shrink-0">
+          <Sidebar activePage="dock" />
+        </div>
 
       {/* Main content */}
-      <div className="ml-64 flex-1 flex flex-col h-full">
-        <header className="fixed top-0 left-64 right-0 z-10 border-b bg-white px-6 py-4 flex items-center justify-between">
+      <div className="flex-1 flex flex-col h-full">
+        <header className="fixed top-0 left-64 right-0 z-10 border-b bg-white px-6 py-3 flex items-center justify-between">
           <div className="w-96">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />

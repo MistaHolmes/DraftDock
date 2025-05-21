@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -17,35 +18,34 @@ interface BlogListProps {
 
 const BlogList: React.FC<BlogListProps> = ({ posts }) => {
   const navigate = useNavigate();
-  const [isAtEnd, setIsAtEnd] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 4;
+  
+  // Calculate total number of pages
+  const totalPages = Math.ceil(posts.length / postsPerPage);
+  
+  // Get current posts
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
+  
   const handleClick = (id: string) => {
     navigate(`/blog/${id}`);
   };
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsAtEnd(entry.isIntersecting);
-      },
-      {
-        root: null,
-        rootMargin: "0px",
-        threshold: 1.0, // Trigger when sentinel is fully visible
-      }
-    );
-
-    if (sentinelRef.current) {
-      observer.observe(sentinelRef.current);
+  
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo(0, 0);
     }
-
-    return () => {
-      if (sentinelRef.current) {
-        observer.unobserve(sentinelRef.current);
-      }
-    };
-  }, [posts]);
+  };
+  
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo(0, 0);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -58,7 +58,7 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
         </div>
       ) : (
         <>
-          {posts.map((post) => (
+          {currentPosts.map((post) => (
             <motion.div
               key={post.id}
               role="button"
@@ -79,12 +79,37 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
               <div className="mt-4 text-sm text-gray-600 font-medium">By {post.author}</div>
             </motion.div>
           ))}
-          {/* Sentinel div to detect scroll end */}
-          <div ref={sentinelRef} className="h-1 w-full" />
-
-          {/* Show message only when user reaches end */}
-          {isAtEnd && (
-            <p className="mt-6 text-gray-500 italic">No more drafts — dock a new one!</p>
+          
+          {/* Pagination Controls */}
+          {posts.length > 0 && (
+            <div className="flex items-center justify-center mt-6 gap-4">
+              <Button 
+                onClick={goToPreviousPage} 
+                disabled={currentPage === 1}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
+              </Button>
+              
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </div>
+              
+              <Button 
+                onClick={goToNextPage} 
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
+          {/* Message when no more pages are available */}
+          {currentPage === totalPages && posts.length > 0 && (
+            <p className="mt-2 text-gray-500 italic">No more drafts — dock a new one!</p>
           )}
         </>
       )}

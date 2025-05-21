@@ -83,7 +83,7 @@ app.get('/api/blogs', async (req, res:any) => {
       },
     });
 
-    await redisClient.setEx(cacheKey, 60, JSON.stringify(blogs)); // TTL 60s
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs)); // TTL 60s
     console.log('Serving from DB and caching in Redis');
     return res.json(blogs);
   } catch (err) {
