@@ -90,15 +90,17 @@ export function BlogForm() {
       <main className="flex flex-col items-center py-10 px-4 md:px-8 bg-gray-50">
         <div className="w-full max-w-4xl">
           {/* Title */}
-          <Textarea
-            id="title"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Blog Title"
-            className="text-3xl md:text-5xl lg:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[80px] md:h-[100px] p-0"
-            aria-invalid={!!errors.title}
-          />
-
+          <div className="border-b-1 border-gray-200">
+            <Textarea
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Blog Title"
+              className="text-3xl md:text-5xl lg:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[80px] md:h-[100px] p-0"
+              aria-invalid={!!errors.title}
+            />
+          </div>
+                    
           {/* Content */}
           <Textarea
             id="content"
