@@ -122,7 +122,8 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
         authorId: user.id,
       },
     });
-
+    
+    await redisClient.del('blogs:all');
     return res.status(201).json(newBlog);
   } catch (error) {
     console.error("Failed to create blog:", error);

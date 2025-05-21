@@ -82,28 +82,30 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
           
           {/* Pagination Controls */}
           {posts.length > 0 && (
-            <div className="flex items-center justify-center mt-6 gap-4">
-              <Button 
-                onClick={goToPreviousPage} 
-                disabled={currentPage === 1}
-                className="flex items-center gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </Button>
+            <div className="flex items-center justify-between mt-6 gap-4">
+              {currentPage > 1 && (
+                <Button 
+                  onClick={goToPreviousPage} 
+                  className="flex items-center gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </Button>
+              )}
               
               <div className="text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </div>
               
-              <Button 
-                onClick={goToNextPage} 
-                disabled={currentPage === totalPages}
-                className="flex items-center gap-1"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              {currentPage < totalPages && (
+                <Button 
+                  onClick={goToNextPage} 
+                  className="flex items-center gap-1"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           )}
           

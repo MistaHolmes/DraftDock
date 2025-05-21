@@ -4,9 +4,9 @@ import axios from "axios";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { Spinner } from "@/components/ui/spinner";
 import BlogList from "@/components/BlogList";
 import Sidebar from "@/components/SideBar";
+import BlogSkeleton from "@/components/BlogSkeleton";
 
 // Define the Blog type
 interface Blog {
@@ -75,7 +75,9 @@ const Blogs: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
+  const [allBlogs, setAllBlogs] = useState<Blog[]>([]);
   const navigate = useNavigate();
+  
   
   const handleClick = () => {
     navigate('/create-blog');
@@ -107,7 +109,8 @@ const Blogs: React.FC = () => {
             tags: b.tags || [],
           }))
           .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
+        
+        setAllBlogs(fetchedBlogs);
         setFilteredBlogs(fetchedBlogs);
       })
       .catch((err) => {
@@ -119,20 +122,19 @@ const Blogs: React.FC = () => {
   }, [user, isLoaded]);
 
   // Filter blogs when searchTerm changes
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      // No need to filter if search term is empty
-      return;
-    }
-    
-    const lowercaseSearchTerm = searchTerm.toLowerCase();
-    const filtered = filteredBlogs.filter(blog => 
-      blog.title.toLowerCase().includes(lowercaseSearchTerm) ||
-      blog.summary.toLowerCase().includes(lowercaseSearchTerm)
-    );
-    
-    setFilteredBlogs(filtered);
-  }, [searchTerm]);
+useEffect(() => {
+  if (!searchTerm.trim()) {
+    setFilteredBlogs(allBlogs);
+    return;
+  }
+  const lowercaseSearchTerm = searchTerm.toLowerCase();
+  const filtered = allBlogs.filter(blog =>
+    blog.title.toLowerCase().includes(lowercaseSearchTerm) ||
+    blog.summary.toLowerCase().includes(lowercaseSearchTerm)
+  );
+
+  setFilteredBlogs(filtered);
+}, [searchTerm, allBlogs]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -173,11 +175,10 @@ const Blogs: React.FC = () => {
         <main className="flex-1 overflow-y-auto pt-[4.5rem] px-6 pb-6 bg-gray-50">
           <div className="p-6">                    
            {loading ? (
-              <div className="fixed inset-0 flex flex-col items-center justify-center z-50">
-                <Spinner size="xl"/>
-                <p className="mt-4 text-m text-gray-600">
-                  Docking Your Blog Posts ...
-                </p>
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <BlogSkeleton key={i} />
+                ))}
               </div>
             ) : (
               <BlogList posts={filteredBlogs} />

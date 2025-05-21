@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Sidebar from "@/components/SideBar";
+import SubmitSkeleton from "@/components/ui/SubmitSkeleton";
 
 export function BlogForm() {
   const navigate = useNavigate();
@@ -72,75 +73,87 @@ export function BlogForm() {
   };
 
   return (
-  <div className="flex min-h-screen bg-gray-50">
-    {/* Sidebar (occupies space in layout) */}
-    <div className="hidden md:block w-64 border-r">
-      <Sidebar activePage="dock" />
-    </div>
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <div className="hidden md:block w-64 border-r">
+        <Sidebar activePage="dock" />
+      </div>
 
-    {/* Main content */}
-    <div className="flex-1 flex flex-col transition-all duration-300">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-white shadow sticky top-0 z-10">
-        <h1 className="text-lg md:text-xl font-semibold text-gray-900">Create New Post</h1>
-        <UserButton />
-      </header>
-
-      {/* Form container */}
-      <main className="flex flex-col items-center py-10 px-4 md:px-8 bg-gray-50">
-        <div className="w-full max-w-4xl">
-          {/* Title */}
-          <div className="border-b-1 border-gray-200">
-            <Textarea
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Blog Title"
-              className="text-3xl md:text-5xl lg:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[80px] md:h-[100px] p-0"
-              aria-invalid={!!errors.title}
-            />
+      {/* Main content */}
+      <div className="flex-1 flex flex-col bg-gray-50">
+        {isSubmitting ? (
+          // 🔄 Show loading UI
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+            <div className="w-full max-w-3xl space-y-4">
+              <SubmitSkeleton />
+            </div>
           </div>
-                    
-          {/* Content */}
-          <Textarea
-            id="content"
-            value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            placeholder="Write your blog..."
-            className="min-h-[300px] md:min-h-[400px] w-full p-4 text-gray-700 md:text-3xl lg:text-2xl border-0 focus:outline-none focus:ring-0 bg-gray-50 resize-none"
-            aria-invalid={!!errors.content}
-          />
+        ) : (
+          <>
+            {/* Header */}
+            <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-white shadow sticky top-0 z-10">
+              <h1 className="text-lg md:text-xl font-semibold text-gray-900">Create New Draft</h1>
+              <UserButton />
+            </header>
 
-          {/* Buttons */}
-          <div className="flex flex-col md:flex-row gap-4 mt-6">
-            <Button
-              type="button"
-              onClick={() => navigate("/blogs")}
-              className="w-full md:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleDraftSubmit}
-              disabled={isSubmitting}
-              className="w-full md:w-auto"
-            >
-              {isSubmitting ? "Saving..." : "Save Draft"}
-            </Button>
-            <Button
-              type="submit"
-              onClick={(e) => handleSubmit(e, false)}
-              disabled={isSubmitting}
-              className="bg-black text-white w-full md:w-auto hover:bg-gray-800"
-            >
-              {isSubmitting ? "Publishing..." : "Publish"}
-            </Button>
-          </div>
-        </div>
-      </main>
+            {/* Form container */}
+            <main className="flex flex-col items-center py-10 px-4 md:px-8 bg-gray-50">
+              <div className="w-full max-w-4xl">
+                {/* Title */}
+                <div className="border-b-1 border-gray-200">
+                  <Textarea
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Blog Title"
+                    className="text-3xl md:text-5xl lg:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[80px] md:h-[100px] p-0"
+                    aria-invalid={!!errors.title}
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="border-b-1 border-gray-200">
+                  <Textarea
+                    id="content"
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    placeholder="Write your blog..."
+                    className="min-h-[300px] md:min-h-[400px] w-full p-4 text-gray-700 md:text-3xl lg:text-2xl border-0 focus:outline-none focus:ring-0 bg-gray-50 resize-none"
+                    aria-invalid={!!errors.content}
+                  />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex flex-col md:flex-row gap-4 mt-6">
+                  <Button
+                    type="button"
+                    onClick={() => navigate("/blogs")}
+                    className="w-full md:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleDraftSubmit}
+                    disabled={isSubmitting}
+                    className="w-full md:w-auto"
+                  >
+                    {isSubmitting ? "Saving..." : "Save Draft"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    onClick={(e) => handleSubmit(e, false)}
+                    disabled={isSubmitting}
+                    className="bg-black text-white w-full md:w-auto hover:bg-gray-800"
+                  >
+                    {isSubmitting ? "Publishing..." : "Publish"}
+                  </Button>
+                </div>
+              </div>
+            </main>
+          </>
+        )}
+      </div>
     </div>
-  </div>
-);
-
+  );
 }
