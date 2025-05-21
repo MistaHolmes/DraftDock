@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Sidebar from "@/components/SideBar";
 import SubmitSkeleton from "@/components/ui/SubmitSkeleton";
+import { Menu } from "lucide-react";
 
 export function BlogForm() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function BlogForm() {
     server?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
     e.preventDefault();
@@ -74,8 +76,16 @@ export function BlogForm() {
 
   return (
     <div className="flex min-h-screen">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-opacity-50 z-20 md:hidden" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="hidden md:block w-64 border-r">
+      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static`}>
         <Sidebar activePage="dock" />
       </div>
 
@@ -92,43 +102,64 @@ export function BlogForm() {
           <>
             {/* Header */}
             <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-white shadow sticky top-0 z-10">
+              {/* Mobile menu button */}
+              <button 
+                className="md:hidden mr-2 p-2 rounded-md hover:bg-gray-100"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              
               <h1 className="text-lg md:text-xl font-semibold text-gray-900">Create New Draft</h1>
               <UserButton />
             </header>
 
             {/* Form container */}
-            <main className="flex flex-col items-center py-10 px-4 md:px-8 bg-gray-50">
+            <main className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-gray-50">
               <div className="w-full max-w-4xl">
+                {/* Error message */}
+                {errors.server && (
+                  <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-md">
+                    {errors.server}
+                  </div>
+                )}
+                
                 {/* Title */}
-                <div className="border-b-1 border-gray-200">
+                <div className="border-b border-gray-200 mb-4">
                   <Textarea
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Blog Title"
-                    className="text-3xl md:text-5xl lg:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[80px] md:h-[100px] p-0"
+                    className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[60px] sm:h-[80px] md:h-[100px] p-0"
                     aria-invalid={!!errors.title}
                   />
+                  {errors.title && (
+                    <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+                  )}
                 </div>
 
                 {/* Content */}
-                <div className="border-b-1 border-gray-200">
+                <div className="border-b border-gray-200 mb-6">
                   <Textarea
                     id="content"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     placeholder="Write your blog..."
-                    className="min-h-[300px] md:min-h-[400px] w-full p-4 text-gray-700 md:text-3xl lg:text-2xl border-0 focus:outline-none focus:ring-0 bg-gray-50 resize-none"
+                    className="min-h-[250px] sm:min-h-[300px] md:min-h-[400px] w-full p-4 text-gray-700 text-lg sm:text-xl md:text-2xl border-0 focus:outline-none focus:ring-0 bg-gray-50 resize-none"
                     aria-invalid={!!errors.content}
                   />
+                  {errors.content && (
+                    <p className="text-sm text-red-500 mt-1">{errors.content}</p>
+                  )}
                 </div>
 
                 {/* Buttons */}
-                <div className="flex flex-col md:flex-row gap-4 mt-6">
+                <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   <Button
                     type="button"
                     onClick={() => navigate("/blogs")}
-                    className="w-full md:w-auto"
+                    className="w-full sm:w-auto order-3 sm:order-1"
                   >
                     Cancel
                   </Button>
@@ -136,7 +167,7 @@ export function BlogForm() {
                     type="button"
                     onClick={handleDraftSubmit}
                     disabled={isSubmitting}
-                    className="w-full md:w-auto"
+                    className="w-full sm:w-auto order-2"
                   >
                     {isSubmitting ? "Saving..." : "Save Draft"}
                   </Button>
@@ -144,7 +175,7 @@ export function BlogForm() {
                     type="submit"
                     onClick={(e) => handleSubmit(e, false)}
                     disabled={isSubmitting}
-                    className="bg-black text-white w-full md:w-auto hover:bg-gray-800"
+                    className="bg-black text-white w-full sm:w-auto order-1 sm:order-3 sm:ml-auto hover:bg-gray-800"
                   >
                     {isSubmitting ? "Publishing..." : "Publish"}
                   </Button>

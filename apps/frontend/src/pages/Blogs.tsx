@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, Plus, Search } from "lucide-react";
+import { Bell, Plus, Search, Menu } from "lucide-react";
 import axios from "axios";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
@@ -76,8 +76,8 @@ const Blogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
   const [allBlogs, setAllBlogs] = useState<Blog[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  
   
   const handleClick = () => {
     navigate('/create-blog');
@@ -122,46 +122,63 @@ const Blogs: React.FC = () => {
   }, [user, isLoaded]);
 
   // Filter blogs when searchTerm changes
-useEffect(() => {
-  if (!searchTerm.trim()) {
-    setFilteredBlogs(allBlogs);
-    return;
-  }
-  const lowercaseSearchTerm = searchTerm.toLowerCase();
-  const filtered = allBlogs.filter(blog =>
-    blog.title.toLowerCase().includes(lowercaseSearchTerm) ||
-    blog.summary.toLowerCase().includes(lowercaseSearchTerm)
-  );
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredBlogs(allBlogs);
+      return;
+    }
+    const lowercaseSearchTerm = searchTerm.toLowerCase();
+    const filtered = allBlogs.filter(blog =>
+      blog.title.toLowerCase().includes(lowercaseSearchTerm) ||
+      blog.summary.toLowerCase().includes(lowercaseSearchTerm)
+    );
 
-  setFilteredBlogs(filtered);
-}, [searchTerm, allBlogs]);
+    setFilteredBlogs(filtered);
+  }, [searchTerm, allBlogs]);
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Component */}
-        <div className="w-64 flex-shrink-0">
-          <Sidebar activePage="dock" />
-        </div>
+      <div className={`md:relative fixed inset-y-0 left-0 z-20 transform transition-transform duration-300 ease-in-out bg-white ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <Sidebar activePage="dock" />
+      </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col h-full">
-        <header className="fixed top-0 left-64 right-0 z-10 border-b bg-white px-6 py-3 flex items-center justify-between">
-          <div className="w-96">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <header className="sticky top-0 z-10 border-b bg-white p-4 md:px-6 flex items-center justify-between">
+          {/* Mobile menu button */}
+          <button 
+            className="mr-2 md:hidden" 
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <div className="flex-1 max-w-md">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
                 type="search"
                 placeholder="Search titles..."
-                className="pl-9"
+                className="pl-9 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Button className="gap-2" onClick={handleClick}>
-              <Plus className="h-4 w-4" />
-              Create
+          
+          <div className="flex items-center gap-2 md:gap-4 ml-2">
+            <Button className="gap-2 text-xs md:text-sm" onClick={handleClick}>
+              <Plus className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Create</span>
             </Button>
             <Button variant="ghost" size="icon">
               <Bell className="h-4 w-4" />
@@ -172,9 +189,9 @@ useEffect(() => {
           </div>
         </header>
         
-        <main className="flex-1 overflow-y-auto pt-[4.5rem] px-6 pb-6 bg-gray-50">
-          <div className="p-6">                    
-           {loading ? (
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
+          <div className="max-w-6xl mx-auto">                    
+            {loading ? (
               <div className="space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <BlogSkeleton key={i} />
