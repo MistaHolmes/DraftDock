@@ -5,7 +5,6 @@ import LandingPage from "./pages/Landing";
 import UserBlogs from "./pages/Blogs";
 import {BlogForm} from "./pages/BlogForm";
 import HomeRedirector from "./components/HomeRedirector";
-// Testing
 
 const App: React.FC = () => {
   return (
