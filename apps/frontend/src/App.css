@@ -40,3 +40,9 @@
 .read-the-docs {
   color: #888;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Charter&display=swap');
+
+body {
+  font-family: 'Charter', Georgia, serif;
+}

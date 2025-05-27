@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useAuth, UserButton } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
-import SubmitSkeleton from "@/components/ui/SubmitSkeleton";
-import { Ship } from "lucide-react";
+import BlogSkeleton from "@/components/BlogSkeleton";
 import { Footer } from "@/components/Footer";
+import Header2 from "@/components/ui/header2";
 
 export function BlogForm() {
   const navigate = useNavigate();
@@ -50,8 +50,10 @@ export function BlogForm() {
       const token = await getToken();
       if (!token) throw new Error("Authentication required");
 
+      const API_URL = import.meta.env.VITE_API_BASE_URL;
+      
       const response = await axios.post(
-        "http://localhost:3000/api/create-blog",
+        `${API_URL}/api/create-blog`,
         { ...formData, published: !isDraft },
         {
           headers: {
@@ -92,32 +94,18 @@ export function BlogForm() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Main content */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-gray-100">
         {isSubmitting ? (
           // Loading UI
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
             <div className="w-full max-w-3xl space-y-4">
-              <SubmitSkeleton />
+              <BlogSkeleton variant="medium" />
             </div>
           </div>
         ) : (
           <>
             {/* Header */}
-            <header 
-              className="flex items-center justify-between px-4 md:px-6 py-3 bg-white shadow sticky top-0 z-10"
-            >
-              <Button
-                onClick={() => navigate("/landing")}
-                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold bg-white border-0 hover:bg-white focus:bg-white active:bg-white"
-              >
-                <Ship className="h-6 w-6 text-gray-800" />
-                <span className="hidden md:inline font-bold font-playfair text-black hover:text-black focus:text-black active:text-black">
-                  DraftDock
-                </span>
-              </Button>
-              <UserButton />
-            </header>
-
+            <Header2 />
             {/* Form container */}
             <main 
               className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-white/80"

@@ -163,25 +163,39 @@ app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
   }
 });
 
-app.post('/user/blogs/:blogId/like', requireAuth(), async (req, res) => {
+app.get('/api/blogs/:blogId', async (req, res: any) => {
   try {
-    const prismaUser = await syncUser(req);
     const { blogId } = req.params;
+    
+    const cacheKey = `blog:${blogId}`;
+    const cachedBlog = await redisClient.get(cacheKey);
 
-    const updatedBlog = await prisma.blog.update({
+    if (cachedBlog) {
+      console.log('Serving single blog from Redis cache');
+      return res.json(JSON.parse(cachedBlog));
+    }
+
+    const blog = await prisma.blog.findUnique({
       where: { id: blogId },
-      data: {
-        likes: {
-          increment: 1,
+      include: {
+        author: {
+          select: {
+            email: true,
+          },
         },
       },
-      include: { author: true },
     });
 
-    res.json({ likes: updatedBlog.likes });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to record like' });
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog not found' });
+    }
+
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(blog)); 
+    console.log('Serving single blog from DB and caching in Redis');
+    return res.json(blog);
+  } catch (err) {
+    console.error('Error fetching blog:', err);
+    return res.status(500).json({ error: 'Failed to fetch blog' });
   }
 });
 

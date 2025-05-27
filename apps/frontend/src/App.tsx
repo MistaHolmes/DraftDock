@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/Landing";
 import UserBlogs from "./pages/Blogs";
 import {BlogForm} from "./pages/BlogForm";
+import BlogView from "./pages/BlogView";
 import HomeRedirector from "./components/HomeRedirector";
 
 const App: React.FC = () => {
@@ -14,6 +15,7 @@ const App: React.FC = () => {
         <Route path="/landing" element={<RequireAuth><LandingPage /></RequireAuth>}/>
         <Route path="/blogs" element={<RequireAuth><UserBlogs /></RequireAuth>}/>
         <Route path="/create-blog" element={<RequireAuth><BlogForm /></RequireAuth>}/>
+        <Route path="/blog/:blogId" element={<RequireAuth><BlogView /></RequireAuth>}/>
       </Routes>
     </Router>
   );
