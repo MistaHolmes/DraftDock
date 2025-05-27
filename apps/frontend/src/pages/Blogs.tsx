@@ -148,15 +148,15 @@ const Blogs: React.FC = () => {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="sticky top-0 z-10 border-b bg-muted/10 p-4 md:px-6 flex items-center justify-between">
+          <header className="sticky top-0 z-10 border-b bg-gray-50 p-4 md:px-6 flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <Button
                 variant="ghost"
                 onClick={() => navigate("/landing")}
-                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold hover:bg-transparent"
+                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold bg-transparent text-black hover:bg-transparent hover:text-black focus:text-black active:text-black"
               >
                 <Ship className="h-6 w-6 text-gray-800" />
-                <span className="hidden md:inline font-bold font-playfair">DraftDock</span>
+                DraftDock
               </Button>
 
               <div className="relative w-full">
@@ -172,36 +172,12 @@ const Blogs: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4 ml-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 text-xs md:text-sm">
-                    <span className="hidden sm:inline">Create</span>
-                    <Plus className="h-3 w-3 md:h-4 md:w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-sm">
-                  <DialogHeader>
-                    <DialogTitle>Draft a New</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 mt-2">
-                    <Button
-                      className="w-full justify-start gap-2 hover:bg-gray-300 hover:text-black"
-                      onClick={() => navigate("/create-blog")}
-                    >
-                      <FileText className="w-4 h-4" />
-                      Blog
-                    </Button>
-                    <Button
-                      className="w-full justify-start gap-2 hover:bg-gray-300 hover:text-black"
-                      onClick={() => navigate("/canvas")}
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      Canvas
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
+              <Button className="gap-2 text-xs md:text-sm"
+                onClick={() => navigate("/create-blog")}
+              >
+                <span className="hidden sm:inline">Create</span>
+                <Plus className="h-3 w-3 md:h-4 md:w-4" />
+              </Button>
               <Button variant="ghost" size="icon">
                 <Bell className="h-4 w-4" />
               </Button>

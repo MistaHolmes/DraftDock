@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth, UserButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,15 @@ export function BlogForm() {
     server?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Trigger animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
     e.preventDefault();
@@ -73,6 +82,13 @@ export function BlogForm() {
     handleSubmit(e as unknown as React.FormEvent, true);
   };
 
+  // Animation styles
+  const getAnimationStyle = (delay: number) => ({
+    opacity: isLoaded ? 1 : 0,
+    transform: isLoaded ? 'translateY(0)' : 'translateY(30px)',
+    transition: `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
+  });
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Main content */}
@@ -87,29 +103,45 @@ export function BlogForm() {
         ) : (
           <>
             {/* Header */}
-            <header className="flex items-center justify-between px-4 md:px-6 py-3 bg-white shadow sticky top-0 z-10">
+            <header 
+              className="flex items-center justify-between px-4 md:px-6 py-3 bg-white shadow sticky top-0 z-10"
+            >
               <Button
                 onClick={() => navigate("/landing")}
-                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold hover:bg-transparent bg-white border-0"
+                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold bg-white border-0 hover:bg-white focus:bg-white active:bg-white"
               >
                 <Ship className="h-6 w-6 text-gray-800" />
-                <span className="hidden md:inline font-bold font-playfair hover:text-black ">DraftDock</span>
+                <span className="hidden md:inline font-bold font-playfair text-black hover:text-black focus:text-black active:text-black">
+                  DraftDock
+                </span>
               </Button>
               <UserButton />
             </header>
 
             {/* Form container */}
-            <main className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-white/80">
-              <div className="w-full max-w-4xl bg-muted/20 rounded-lg p-8">
+            <main 
+              className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-white/80"
+              style={getAnimationStyle(150)}
+            >
+              <div 
+                className="w-full max-w-4xl bg-muted/20 rounded-lg p-8"
+                style={getAnimationStyle(200)}
+              >
                 {/* Error message */}
                 {errors.server && (
-                  <div className="mb-6 p-3 bg-red-50 text-red-700 border border-red-200 rounded-md">
+                  <div 
+                    className="mb-6 p-3 bg-red-50 text-red-700 border border-red-200 rounded-md"
+                    style={getAnimationStyle(250)}
+                  >
                     {errors.server}
                   </div>
                 )}
 
                 {/* Title */}
-                <div className="border-b border-gray-300 mb-6">
+                <div 
+                  className="border-b border-gray-300 mb-6"
+                  style={getAnimationStyle(300)}
+                >
                   <Textarea
                     id="title"
                     value={formData.title}
@@ -124,7 +156,10 @@ export function BlogForm() {
                 </div>
 
                 {/* Content */}
-                <div className="mb-6">
+                <div 
+                  className="mb-6"
+                  style={getAnimationStyle(400)}
+                >
                   <Textarea
                     id="content"
                     value={formData.content}
@@ -139,11 +174,14 @@ export function BlogForm() {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <div 
+                  className="flex flex-col sm:flex-row gap-4 mt-6"
+                  style={getAnimationStyle(500)}
+                >
                   <Button
                     type="button"
                     onClick={() => navigate("/blogs")}
-                    className="w-full sm:w-auto order-3 sm:order-1"
+                    className="w-full sm:w-auto order-3 sm:order-1 transform transition-all duration-200 hover:scale-105"
                   >
                     Cancel
                   </Button>
@@ -151,7 +189,7 @@ export function BlogForm() {
                     type="button"
                     onClick={handleDraftSubmit}
                     disabled={isSubmitting}
-                    className="w-full sm:w-auto order-2"
+                    className="w-full sm:w-auto order-2 transform transition-all duration-200 hover:scale-105"
                   >
                     {isSubmitting ? "Saving..." : "Save Draft"}
                   </Button>
@@ -159,14 +197,18 @@ export function BlogForm() {
                     type="submit"
                     onClick={(e) => handleSubmit(e, false)}
                     disabled={isSubmitting}
-                    className="bg-black text-white w-full sm:w-auto order-1 sm:order-3 sm:ml-auto hover:bg-gray-900"
+                    className="bg-black text-white w-full sm:w-auto order-1 sm:order-3 sm:ml-auto hover:bg-gray-900 transform transition-all duration-200 hover:scale-105"
                   >
                     {isSubmitting ? "Publishing..." : "Publish"}
                   </Button>
                 </div>
               </div>
             </main>
-            <Footer />
+            
+            {/* Footer */}
+            <div>
+              <Footer />
+            </div>
           </>
         )}
       </div>

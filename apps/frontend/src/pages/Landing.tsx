@@ -58,7 +58,7 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-white text-black overflow-hidden relative">
       {/* Background */}
       <motion.div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-white" />
+        <div className="absolute inset-0 bg-gray-150" />
 
         <motion.div
           className="absolute inset-0"
@@ -139,22 +139,29 @@ const LandingPage: React.FC = () => {
             >
               <SignedIn>
                 <button
-                  onClick={() => route("/blogs")}
+                  onClick={() => route("/create-blog")}
                   className="min-w-[140px] px-6 py-4 border-2 border-black text-black hover:bg-black hover:text-white rounded-md transition-all font-medium"
                 >
-                  DRAFTS <ArrowRight className="ml-2 inline h-5 w-5" />
+                  Start Drafting <ArrowRight className="ml-2 inline h-5 w-5" />
+                </button>
+                <button className="min-w-[140px] px-6 py-4 bg-black text-white hover:bg-transparent hover:text-black border-2 border-black rounded-md transition-all font-medium"
+                  onClick={() => route("/blogs")}
+                >
+                  Start Reading <ArrowRight className="ml-2 inline h-5 w-5" />
                 </button>
               </SignedIn>
               <SignedOut>
                 <SignInButton mode="modal">
                   <button className="min-w-[140px] px-6 py-4 border-2 border-black text-black hover:bg-black hover:text-white rounded-md transition-all font-medium">
-                    DRAFTS <ArrowRight className="ml-2 inline h-5 w-5" />
+                    Start Drafting <ArrowRight className="ml-2 inline h-5 w-5" />
                   </button>
                 </SignInButton>
-              </SignedOut>
-              <button className="min-w-[140px] px-6 py-4 bg-black text-white hover:bg-transparent hover:text-black border-2 border-black rounded-md transition-all font-medium">
-                CANVAS <ArrowRight className="ml-2 inline h-5 w-5" />
-              </button>
+                <SignInButton mode="modal">
+                  <button className="min-w-[140px] px-6 py-4 bg-black text-white hover:bg-transparent hover:text-black border-2 border-black rounded-md transition-all font-medium">
+                    Start Reading <ArrowRight className="ml-2 inline h-5 w-5" />
+                  </button>
+                </SignInButton>
+              </SignedOut>              
             </motion.div>
           </motion.section>
         )}
