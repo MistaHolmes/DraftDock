@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, Plus, Search, Menu } from "lucide-react";
+import { Bell, Plus, Search, Ship, FileText, LayoutDashboard  } from "lucide-react";
 import axios from "axios";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import BlogList from "@/components/BlogList";
-import Sidebar from "@/components/SideBar";
 import BlogSkeleton from "@/components/BlogSkeleton";
+import { Footer } from "@/components/Footer";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Define the Blog type
 interface Blog {
@@ -76,7 +83,6 @@ const Blogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredBlogs, setFilteredBlogs] = useState<Blog[]>([]);
   const [allBlogs, setAllBlogs] = useState<Blog[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   
   const handleClick = () => {
@@ -137,71 +143,91 @@ const Blogs: React.FC = () => {
   }, [searchTerm, allBlogs]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden" 
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Component */}
-      <div className={`md:relative fixed inset-y-0 left-0 z-20 transform transition-transform duration-300 ease-in-out bg-white ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <Sidebar activePage="dock" />
-      </div>
-
+    <div className="flex h-screen overflow-hidden ">
       {/* Main content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="sticky top-0 z-10 border-b bg-white p-4 md:px-6 flex items-center justify-between">
-          {/* Mobile menu button */}
-          <button 
-            className="mr-2 md:hidden" 
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
+        {/* Header */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="sticky top-0 z-10 border-b bg-muted/10 p-4 md:px-6 flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 max-w-md">
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/landing")}
+                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold hover:bg-transparent"
+              >
+                <Ship className="h-6 w-6 text-gray-800" />
+                <span className="hidden md:inline font-bold font-playfair">DraftDock</span>
+              </Button>
 
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="search"
-                placeholder="Search titles..."
-                className="pl-9 w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 md:gap-4 ml-2">
-            <Button className="gap-2 text-xs md:text-sm" onClick={handleClick}>
-              <Plus className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Create</span>
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <SignedIn>           
-              <UserButton />
-            </SignedIn>
-          </div>
-        </header>
-        
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
-          <div className="max-w-6xl mx-auto">                    
-            {loading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <BlogSkeleton key={i} />
-                ))}
+              <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Search titles..."
+                  className="pl-9 w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            ) : (
-              <BlogList posts={filteredBlogs} />
-            )}
-          </div>
-        </main>
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-4 ml-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="gap-2 text-xs md:text-sm">
+                    <span className="hidden sm:inline">Create</span>
+                    <Plus className="h-3 w-3 md:h-4 md:w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Draft a New</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 mt-2">
+                    <Button
+                      className="w-full justify-start gap-2 hover:bg-gray-300 hover:text-black"
+                      onClick={() => navigate("/create-blog")}
+                    >
+                      <FileText className="w-4 h-4" />
+                      Blog
+                    </Button>
+                    <Button
+                      className="w-full justify-start gap-2 hover:bg-gray-300 hover:text-black"
+                      onClick={() => navigate("/canvas")}
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      Canvas
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="ghost" size="icon">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
+            </div>
+          </header>
+          
+          <main className="flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6">
+            <div className="max-w-6xl mx-auto">                    
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <BlogSkeleton key={i} />
+                  ))}
+                </div>
+              ) : (
+                <BlogList posts={filteredBlogs} />
+              )}
+            </div>
+            <div className="mt-8">
+              <Footer />
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -37,7 +37,10 @@ theme: {
       base: '500',
       heading: '700',
     },
-   },
+    fontFamily: {
+      playfair: ['"Playfair Display"', 'serif'],
+    },
+  },
 },
   plugins: [],
 }

@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
-import Sidebar from "@/components/SideBar";
 import SubmitSkeleton from "@/components/ui/SubmitSkeleton";
-import { Menu } from "lucide-react";
+import { Ship } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 export function BlogForm() {
   const navigate = useNavigate();
@@ -22,7 +22,6 @@ export function BlogForm() {
     server?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
     e.preventDefault();
@@ -75,24 +74,11 @@ export function BlogForm() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-opacity-50 z-20 md:hidden" 
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static`}>
-        <Sidebar activePage="dock" />
-      </div>
-
+    <div className="flex min-h-screen bg-gray-50">
       {/* Main content */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {isSubmitting ? (
-          // 🔄 Show loading UI
+          // Loading UI
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
             <div className="w-full max-w-3xl space-y-4">
               <SubmitSkeleton />
@@ -101,61 +87,59 @@ export function BlogForm() {
         ) : (
           <>
             {/* Header */}
-            <header className="flex items-center justify-between px-4 md:px-6 py-4 bg-white shadow sticky top-0 z-10">
-              {/* Mobile menu button */}
-              <button 
-                className="md:hidden mr-2 p-2 rounded-md hover:bg-gray-100"
-                onClick={() => setSidebarOpen(true)}
+            <header className="flex items-center justify-between px-4 md:px-6 py-3 bg-white shadow sticky top-0 z-10">
+              <Button
+                onClick={() => navigate("/landing")}
+                className="flex items-center gap-2 px-2 pl-1 text-lg font-bold hover:bg-transparent bg-white border-0"
               >
-                <Menu className="h-5 w-5" />
-              </button>
-              
-              <h1 className="text-lg md:text-xl font-semibold text-gray-900">Create New Draft</h1>
+                <Ship className="h-6 w-6 text-gray-800" />
+                <span className="hidden md:inline font-bold font-playfair hover:text-black ">DraftDock</span>
+              </Button>
               <UserButton />
             </header>
 
             {/* Form container */}
-            <main className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-gray-50">
-              <div className="w-full max-w-4xl">
+            <main className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-white/80">
+              <div className="w-full max-w-4xl bg-muted/20 rounded-lg p-8">
                 {/* Error message */}
                 {errors.server && (
-                  <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-md">
+                  <div className="mb-6 p-3 bg-red-50 text-red-700 border border-red-200 rounded-md">
                     {errors.server}
                   </div>
                 )}
-                
+
                 {/* Title */}
-                <div className="border-b border-gray-200 mb-4">
+                <div className="border-b border-gray-300 mb-6">
                   <Textarea
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Blog Title"
-                    className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 bg-gray-50 border-none shadow-none focus:outline-none focus:ring-0 resize-none leading-tight h-[60px] sm:h-[80px] md:h-[100px] p-0"
+                    className="text-3xl font-extrabold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none leading-tight h-[70px] sm:h-[90px] md:h-[110px] p-0"
                     aria-invalid={!!errors.title}
                   />
                   {errors.title && (
-                    <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+                    <p className="text-sm text-red-600 mt-1">{errors.title}</p>
                   )}
                 </div>
 
                 {/* Content */}
-                <div className="border-b border-gray-200 mb-6">
+                <div className="mb-6">
                   <Textarea
                     id="content"
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     placeholder="Write your blog..."
-                    className="min-h-[250px] sm:min-h-[300px] md:min-h-[400px] w-full p-4 text-gray-700 text-lg sm:text-xl md:text-2xl border-0 focus:outline-none focus:ring-0 bg-gray-50 resize-none"
+                    className="min-h-[280px] sm:min-h-[320px] md:min-h-[420px] w-full p-6 text-gray-800 text-lg sm:text-xl md:text-2xl leading-relaxed resize-none bg-white/20 rounded-md border-0"
                     aria-invalid={!!errors.content}
                   />
                   {errors.content && (
-                    <p className="text-sm text-red-500 mt-1">{errors.content}</p>
+                    <p className="text-sm text-red-600 mt-1 ml-1">{errors.content}</p>
                   )}
                 </div>
 
                 {/* Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <div className="flex flex-col sm:flex-row gap-4 mt-6">
                   <Button
                     type="button"
                     onClick={() => navigate("/blogs")}
@@ -175,13 +159,14 @@ export function BlogForm() {
                     type="submit"
                     onClick={(e) => handleSubmit(e, false)}
                     disabled={isSubmitting}
-                    className="bg-black text-white w-full sm:w-auto order-1 sm:order-3 sm:ml-auto hover:bg-gray-800"
+                    className="bg-black text-white w-full sm:w-auto order-1 sm:order-3 sm:ml-auto hover:bg-gray-900"
                   >
                     {isSubmitting ? "Publishing..." : "Publish"}
                   </Button>
                 </div>
               </div>
             </main>
+            <Footer />
           </>
         )}
       </div>

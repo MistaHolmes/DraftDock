@@ -150,6 +150,9 @@ app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
     
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
+      select: {
+        published: true,
+      }
     });
     
     await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));

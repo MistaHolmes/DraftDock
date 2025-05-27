@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, } from "@clerk/clerk-react";
 import TypeWriter from "../components/TypeWriter";
 import { useNavigate } from "react-router-dom";
+import { Footer } from "@/components/Footer";
 
 const LandingPage: React.FC = () => {
   const mouseX = useMotionValue(0);
@@ -35,7 +36,7 @@ const LandingPage: React.FC = () => {
     visible: {
       opacity: 1,
       transition: { 
-        delayChildren: 0.3, // Delay before first child appears
+        delayChildren: 0.3,
         staggerChildren: 0.2,
        },
     },
@@ -158,31 +159,7 @@ const LandingPage: React.FC = () => {
           </motion.section>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-black/10 text-gray-600 px-6 py-10 text-sm text-center z-10 relative">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="flex justify-center gap-6 flex-wrap">
-            <a href="#" className="hover:text-black transition">Privacy</a>
-            <a href="#" className="hover:text-black transition">Terms</a>
-            <a href="#" 
-            className="hover:text-black transition"
-            >
-            Contact</a>
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href="https://github.com/MistaHolmes"
-              className="hover:text-black transition"
-            >
-              GitHub
-            </a>
-          </div>
-          <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} DraftDock.app. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
