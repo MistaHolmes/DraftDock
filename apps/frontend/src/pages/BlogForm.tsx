@@ -108,9 +108,7 @@ export function BlogForm() {
             <Header2 />
             {/* Form container */}
             <main 
-              className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-white/80"
-              style={getAnimationStyle(150)}
-            >
+              className="flex flex-col items-center py-6 px-4 md:py-10 md:px-8 bg-white/80">
               <div 
                 className="w-full max-w-4xl bg-muted/20 rounded-lg p-8"
                 style={getAnimationStyle(200)}
@@ -135,7 +133,7 @@ export function BlogForm() {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Blog Title"
-                    className="text-3xl font-extrabold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none leading-tight h-[70px] sm:h-[90px] md:h-[110px] p-0"
+                    className="font-serif text-4xl sm:text-5xl md:text-4xl font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none leading-tight h-[70px] sm:h-[90px] md:h-[110px] p-0"
                     aria-invalid={!!errors.title}
                   />
                   {errors.title && (
@@ -153,7 +151,7 @@ export function BlogForm() {
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     placeholder="Write your blog..."
-                    className="min-h-[280px] sm:min-h-[320px] md:min-h-[420px] w-full p-6 text-gray-800 text-lg sm:text-xl md:text-2xl leading-relaxed resize-none bg-white/20 rounded-md border-0"
+                    className="min-h-[280px] sm:min-h-[320px] md:min-h-[420px] w-full p-6 text-gray-800 text-lg sm:text-xl md:text-2xl font-serif leading-relaxed bg-white/20 rounded-md border-0"
                     aria-invalid={!!errors.content}
                   />
                   {errors.content && (
@@ -194,7 +192,7 @@ export function BlogForm() {
             </main>
             
             {/* Footer */}
-            <div>
+            <div className="bg-gray-50">
               <Footer />
             </div>
           </>

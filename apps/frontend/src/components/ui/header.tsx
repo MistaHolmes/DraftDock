@@ -67,9 +67,9 @@ const Header: React.FC<HeaderProps> = ({ searchTerm, setSearchTerm }) => {
         <Button
           variant="ghost"
           onClick={() => navigate("/landing")}
-          className="flex items-center gap-2 px-2 pl-1 text-lg font-bold bg-transparent text-black hover:bg-transparent hover:text-black focus:text-black active:text-black"
+          className="flex items-center gap-2 px-2 pl-1 text-[20px] font-semibold bg-transparent text-black hover:bg-transparent hover:text-black focus:text-black active:text-black font-serif tracking-tight"
         >
-          <Ship className="h-6 w-6 text-gray-800" />
+          <Ship className="h-6 w-6 text-black" />
           DraftDock
         </Button>
       </div>

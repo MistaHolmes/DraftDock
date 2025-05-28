@@ -80,7 +80,7 @@ const Blogs: React.FC = () => {
   }, [searchTerm, allBlogs]);
 
   return (
-    <div className="flex h-screen overflow-hidden ">
+    <div className="flex h-screen overflow-hidden bg-gray-100/30 ">
       {/* Main content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header */}
@@ -90,13 +90,16 @@ const Blogs: React.FC = () => {
             <div className="max-w-6xl mx-auto">                    
               {loading ? (
                 <div className="space-y-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
+                  {Array.from({ length: 4 }).map((_, i) => (
                     <BlogSkeleton key={i} />
                   ))}
                 </div>
               ) : (
                 <BlogList posts={filteredBlogs} />
               )}
+            </div>
+            <div>
+              
             </div>
             <div className="mt-8">
               <Footer />
