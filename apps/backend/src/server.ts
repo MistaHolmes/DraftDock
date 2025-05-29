@@ -123,6 +123,14 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
         authorId: user.id,
       },
     });
+    
+    const notification=await prisma.notification.create({
+      data: {
+        message: `Your blog "${title}" was successfully published.`,
+        userId: user.id,
+        read: false,
+      },
+    });
 
     // Invalidate notifications cache for this user
     const cacheKey = `user_notifications:${user.id}`;
@@ -133,7 +141,7 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
     await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
 
     await redisClient.del('blogs:all');
-    return res.status(201).json(newBlog,notifications);
+    return res.status(201).json({ blog: newBlog, notification });
   } catch (error) {
     console.error("Failed to create blog:", error);
     return res.status(500).json({
@@ -238,6 +246,34 @@ app.get('/api/user/notifications', requireAuth(), async (req, res: any) => {
     return res.status(500).json({ message: "Failed to fetch notifications" });
   }
 });
+
+// PATCH /api/user/notifications/read-all
+app.patch('/api/user/notifications/read-all', requireAuth(), async (req, res: any) => {
+  try {
+    const user = await syncUser(req);
+    if (!user) return res.status(401).json({ message: "User Not Authenticated" });
+
+    await prisma.notification.updateMany({
+      where: { userId: user.id, read: false },
+      data: { read: true },
+    });
+
+    // Refresh Redis cache
+    const updatedNotifications = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    await redisClient.set(`user_notifications:${user.id}`, JSON.stringify(updatedNotifications), {
+      EX: 60 * 5,
+    });
+
+    return res.status(200).json({ message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Failed to mark notifications as read:", error);
+    return res.status(500).json({ message: "Failed to mark as read" });
+  }
+});
+
 
 server.listen(port, () => {
   console.log(`http://localhost:${port}`);
