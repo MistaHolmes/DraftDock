@@ -141,7 +141,7 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
     await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
 
     await redisClient.del('blogs:all');
-    return res.status(201).json({ blog: newBlog, notification });
+    return res.status(201).json({ blog: newBlog, notifications });
   } catch (error) {
     console.error("Failed to create blog:", error);
     return res.status(500).json({
