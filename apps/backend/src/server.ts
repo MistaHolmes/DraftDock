@@ -9,6 +9,7 @@ import cors  from 'cors';
 import bodyParser from 'body-parser';
 import { createClient } from 'redis';
 
+
 const redisClient = createClient({
   url: 'redis://localhost:6379',
 });
@@ -122,9 +123,17 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
         authorId: user.id,
       },
     });
-    
+
+    // Invalidate notifications cache for this user
+    const cacheKey = `user_notifications:${user.id}`;
+    const notifications = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
+
     await redisClient.del('blogs:all');
-    return res.status(201).json(newBlog);
+    return res.status(201).json(newBlog,notifications);
   } catch (error) {
     console.error("Failed to create blog:", error);
     return res.status(500).json({
@@ -196,6 +205,37 @@ app.get('/api/blogs/:blogId', async (req, res: any) => {
   } catch (err) {
     console.error('Error fetching blog:', err);
     return res.status(500).json({ error: 'Failed to fetch blog' });
+  }
+});
+
+//Notifications
+app.get('/api/user/notifications', requireAuth(), async (req, res: any) => {
+  try {
+    const user = await syncUser(req);
+    if (!user) {
+      return res.status(401).json({ message: "User Not Authenticated" });
+    }
+
+    const cacheKey = `user_notifications:${user.id}`;
+    const cachedNotifications = await redisClient.get(cacheKey);
+
+    if (cachedNotifications) {
+      console.log('Serving notifications from Redis cache');
+      return res.json({ notifications: JSON.parse(cachedNotifications) });
+    }
+
+    const notifications = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
+
+    console.log('Serving notifications from DB and caching in Redis');
+    return res.json({ notifications });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return res.status(500).json({ message: "Failed to fetch notifications" });
   }
 });
 

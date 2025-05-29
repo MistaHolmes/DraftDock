@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Ship, Search, Plus, Bell } from "lucide-react";
+import { Ship, Search, Plus } from "lucide-react";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
+import { Notifications } from "../Notifications";
 
 interface HeaderProps {
   searchTerm: string;
@@ -58,7 +59,7 @@ const Input: React.FC<InputProps> = ({ type, placeholder, className, value, onCh
 };
 
 const Header: React.FC<HeaderProps> = ({ searchTerm, setSearchTerm }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
   return (
     <header className="sticky top-0 z-10 border-b bg-gray-50 p-4 md:px-6 flex items-center justify-between">
@@ -95,9 +96,9 @@ const Header: React.FC<HeaderProps> = ({ searchTerm, setSearchTerm }) => {
           <span className="hidden sm:inline">Create</span>
           <Plus className="h-3 w-3 md:h-4 md:w-4" />
         </Button>
-        <Button variant="ghost" size="icon">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <div className="flex justify-end items-center">
+          <Notifications />
+        </div>
         <SignedIn>
           <UserButton />
         </SignedIn>

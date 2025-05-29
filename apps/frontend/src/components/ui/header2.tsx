@@ -1,7 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Ship, Plus, Bell } from "lucide-react";
+import { Ship, Plus } from "lucide-react";
 import { SignedIn, UserButton } from "@clerk/clerk-react";
+import { Notifications } from "../Notifications";
+
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -58,9 +60,7 @@ const Header2 = () => {
           <span className="hidden sm:inline">Create</span>
           <Plus className="h-3 w-3 md:h-4 md:w-4" />
         </Button>
-        <Button variant="ghost" size="icon">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <Notifications />
         <SignedIn>
           <UserButton />
         </SignedIn>
