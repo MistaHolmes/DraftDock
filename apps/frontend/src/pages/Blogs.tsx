@@ -88,7 +88,7 @@ const Blogs: React.FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header searchTerm={searchTerm} setSearchTerm={setSearchTerm} />          
           <main className="flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6">
-            <NotificationTest/>
+            {/* <NotificationTest/> */}
             <div className="max-w-6xl mx-auto">                    
               {loading ? (
                 <div className="space-y-4">

@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Share } from "lucide-react";
+import { ShareButton } from "./ui/shareButton";
 
 interface Blog {
   id: string;
@@ -47,6 +48,8 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
     }
   };
 
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   return (
     <div className="flex flex-col items-center gap-4">
       {posts.length === 0 ? (
@@ -76,7 +79,25 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">{post.title}</h3>
               <p className="text-gray-700 text-sm">{post.summary}</p>
-              <div className="mt-4 text-sm text-gray-600 font-medium">By {post.author}</div>
+              <div className="mt-4 flex items-center justify-between text-sm text-gray-600 font-medium">
+                <span>By {post.author}</span>
+                <ShareButton
+                  variant="link"
+                  className="flex items-center gap-1 text-gray-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const postUrl = `${window.location.origin}/blog/${post.id}`;
+                    navigator.clipboard.writeText(postUrl)
+                      .then(() => {
+                        setCopiedId(post.id);
+                        setTimeout(() => setCopiedId(null), 1000);
+                      });
+                  }}
+                >
+                  <Share className="opacity-60" size={16} strokeWidth={2} aria-hidden="true" />
+                  <span className="text-gray-700">{copiedId === post.id ? "Copied!" : "Share"}</span>
+                </ShareButton>
+              </div>
             </motion.div>
           ))}
           
