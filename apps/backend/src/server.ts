@@ -4,19 +4,16 @@ import { clerkMiddleware, requireAuth } from '@clerk/express';
 import dotenv from 'dotenv';
 import { syncUser } from './sync';
 import http from 'http';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import cors  from 'cors';
 import bodyParser from 'body-parser';
 import { createClient } from 'redis';
-
 
 const redisClient = createClient({
   url: 'redis://localhost:6379',
 });
 
 redisClient.connect().catch(console.error);
-
-
 dotenv.config();
 
 const app = express();
@@ -32,14 +29,90 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(express.json());
 
+// Store user WebSocket connections with ping/pong tracking
+interface UserConnection {
+  ws: WebSocket;
+  isAlive: boolean;
+  pingInterval?: NodeJS.Timeout;
+}
+
+const userConnections = new Map<string, UserConnection>();
+
 const wss = new WebSocketServer({ server });
+
+// Ping interval (30 seconds)
+const PING_INTERVAL = 30000;
+const PONG_TIMEOUT = 5000;
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
+  let userId: string | null = null;
+  let connectionData: UserConnection = { ws, isAlive: true };
+
+  // Set up ping/pong mechanism
+  const startPingInterval = () => {
+    connectionData.pingInterval = setInterval(() => {
+      if (!connectionData.isAlive) {
+        console.log(`User ${userId} failed to respond to ping, terminating connection`);
+        clearInterval(connectionData.pingInterval!);
+        ws.terminate();
+        return;
+      }
+      
+      connectionData.isAlive = false;
+      ws.ping();
+      console.log(`Ping sent to user ${userId}`);
+    }, PING_INTERVAL);
+  };
+
+  // Handle pong responses
+  ws.on('pong', () => {
+    console.log(`Pong received from user ${userId}`);
+    connectionData.isAlive = true;
+  });
+
+  // Handle ping from client (respond with pong)
+  ws.on('ping', () => {
+    console.log(`Ping received from user ${userId}, sending pong`);
+    ws.pong();
+  });
 
   ws.on('message', async (message) => {
     const data = message.toString();
 
+    // Handle user registration for notifications
+    if (data.startsWith('register:')) {
+      userId = data.split(':')[1];
+      connectionData.isAlive = true;
+      userConnections.set(userId, connectionData);
+      console.log(`User ${userId} registered for notifications`);
+      
+      // Start ping/pong mechanism after registration
+      startPingInterval();
+      
+      // Send initial notification data
+      try {
+        const notifications = await getNotificationsForUser(userId);
+        const unreadCount = notifications.filter((n:any) => !n.read).length;
+        
+        ws.send(JSON.stringify({
+          type: 'initial_notifications',
+          notifications,
+          unreadCount
+        }));
+      } catch (error) {
+        console.error('Error sending initial notifications:', error);
+      }
+    }
+
+    // Handle pong response as message (some clients send pong as message)
+    if (data === 'pong') {
+      console.log(`Pong message received from user ${userId}`);
+      connectionData.isAlive = true;
+      return;
+    }
+
+    // Handle existing blog likes functionality
     if (data.startsWith('getLikes:')) {
       const blogId = data.split(':')[1];
       const blog = await prisma.blog.findUnique({
@@ -53,8 +126,65 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('Client disconnected');
+    if (userId) {
+      const connection = userConnections.get(userId);
+      if (connection?.pingInterval) {
+        clearInterval(connection.pingInterval);
+      }
+      userConnections.delete(userId);
+      console.log(`User ${userId} unregistered from notifications`);
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error(`WebSocket error for user ${userId}:`, error);
+    if (userId) {
+      const connection = userConnections.get(userId);
+      if (connection?.pingInterval) {
+        clearInterval(connection.pingInterval);
+      }
+      userConnections.delete(userId);
+    }
   });
 });
+
+// Helper function to get notifications for a user
+async function getNotificationsForUser(userId: string) {
+  const cacheKey = `user_notifications:${userId}`;
+  const cachedNotifications = await redisClient.get(cacheKey);
+
+  if (cachedNotifications) {
+    return JSON.parse(cachedNotifications);
+  }
+
+  const notifications = await prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
+  return notifications;
+}
+
+// Helper function to broadcast notification updates to a user
+function broadcastNotificationUpdate(userId: string) {
+  const connection = userConnections.get(userId);
+  if (!connection || connection.ws.readyState !== WebSocket.OPEN) return;
+
+  prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  }).then(notifications => {
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    connection.ws.send(JSON.stringify({
+      type: "notification_update",
+      notifications,
+      unreadCount,
+    }));
+  });
+}
+
 
 app.get('/', async (req, res) => {
   res.json('HelloW')
@@ -124,7 +254,7 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
       },
     });
     
-    const notification=await prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         message: `Your blog "${title}" was successfully published.`,
         userId: user.id,
@@ -139,6 +269,9 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
       orderBy: { createdAt: 'desc' },
     });
     await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
+
+    // Broadcast notification update to user via WebSocket
+    await broadcastNotificationUpdate(user.id);
 
     await redisClient.del('blogs:all');
     return res.status(201).json({ blog: newBlog, notifications });
@@ -224,22 +357,8 @@ app.get('/api/user/notifications', requireAuth(), async (req, res: any) => {
       return res.status(401).json({ message: "User Not Authenticated" });
     }
 
-    const cacheKey = `user_notifications:${user.id}`;
-    const cachedNotifications = await redisClient.get(cacheKey);
-
-    if (cachedNotifications) {
-      console.log('Serving notifications from Redis cache');
-      return res.json({ notifications: JSON.parse(cachedNotifications) });
-    }
-
-    const notifications = await prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
-
-    console.log('Serving notifications from DB and caching in Redis');
+    const notifications = await getNotificationsForUser(user.id);
+    console.log('Serving notifications from cache/DB');
     return res.json({ notifications });
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -267,13 +386,15 @@ app.patch('/api/user/notifications/read-all', requireAuth(), async (req, res: an
       EX: 60 * 5,
     });
 
+    // Broadcast the update to user via WebSocket
+    await broadcastNotificationUpdate(user.id);
+
     return res.status(200).json({ message: "All notifications marked as read" });
   } catch (error) {
     console.error("Failed to mark notifications as read:", error);
     return res.status(500).json({ message: "Failed to mark as read" });
   }
 });
-
 
 server.listen(port, () => {
   console.log(`http://localhost:${port}`);
