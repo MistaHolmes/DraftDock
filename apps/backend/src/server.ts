@@ -41,8 +41,8 @@ const userConnections = new Map<string, UserConnection>();
 const wss = new WebSocketServer({ server });
 
 // Ping interval (30 seconds)
-const PING_INTERVAL = 30000;
-const PONG_TIMEOUT = 5000;
+const PING_INTERVAL = 60000; // 60 seconds
+const PONG_TIMEOUT = 10000;  // 10 seconds
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -58,22 +58,37 @@ wss.on('connection', (ws) => {
         ws.terminate();
         return;
       }
-      
+
       connectionData.isAlive = false;
+
+      const timeout = setTimeout(() => {
+        if (!connectionData.isAlive) {
+          console.log(`User did not respond to ping within timeout, terminating`);
+          clearInterval(connectionData.pingInterval!);
+          ws.terminate();
+        }
+      }, PONG_TIMEOUT);
+
       ws.ping();
-      console.log(`Ping sent to user ${userId}`);
+
+      console.log(`Ping sent to user`);
+
+      ws.once('pong', () => {
+          clearTimeout(timeout);
+          connectionData.isAlive = true;
+      });
     }, PING_INTERVAL);
   };
 
   // Handle pong responses
   ws.on('pong', () => {
-    console.log(`Pong received from user ${userId}`);
+    console.log(`Pong received from user `);
     connectionData.isAlive = true;
   });
 
   // Handle ping from client (respond with pong)
   ws.on('ping', () => {
-    console.log(`Ping received from user ${userId}, sending pong`);
+    console.log(`Ping received from user, sending pong`);
     ws.pong();
   });
 
@@ -85,7 +100,7 @@ wss.on('connection', (ws) => {
       userId = data.split(':')[1];
       connectionData.isAlive = true;
       userConnections.set(userId, connectionData);
-      console.log(`User ${userId} registered for notifications`);
+      console.log(`Connected users: ${userConnections.size}`);
       
       // Start ping/pong mechanism after registration
       startPingInterval();
@@ -107,7 +122,7 @@ wss.on('connection', (ws) => {
 
     // Handle pong response as message (some clients send pong as message)
     if (data === 'pong') {
-      console.log(`Pong message received from user ${userId}`);
+      console.log(`Pong message received from user`);
       connectionData.isAlive = true;
       return;
     }
@@ -132,7 +147,7 @@ wss.on('connection', (ws) => {
         clearInterval(connection.pingInterval);
       }
       userConnections.delete(userId);
-      console.log(`User ${userId} unregistered from notifications`);
+      console.log(`Connected users: ${userConnections.size}`);
     }
   });
 
