@@ -61,6 +61,19 @@ const BlogView = () => {
     day: "numeric",
   });
 
+  // Function to sanitize HTML content (basic sanitization)
+  const sanitizeHtml = (html: string) => {
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Remove any script tags for security
+    const scripts = tempDiv.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
+    
+    return tempDiv.innerHTML;
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-gray-100/30">
       {/* Sticky Header */}
@@ -122,10 +135,11 @@ const BlogView = () => {
 
           <hr className="border-gray-300 mb-8" />
 
-          {/* Blog Content */}
-          <article className="font-serif text-[1.2rem] sm:text-[1.3rem] leading-relaxed text-gray-900 whitespace-pre-wrap">
-            {blog.content}
-          </article>
+          {/* Blog Content - Now renders HTML */}
+          <article 
+            className="blog-content font-serif text-[1.2rem] sm:text-[1.3rem] leading-relaxed text-gray-900"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(blog.content) }}
+          />
         </div>
       </main>
 
@@ -133,6 +147,119 @@ const BlogView = () => {
       <div className="bg-gray-100/30 mt-auto">
         <Footer />
       </div>
+
+      {/* Add custom styles for blog content */}
+      <style>{`
+        :global(.blog-content) {
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+        
+        :global(.blog-content p) {
+          margin-bottom: 1rem;
+          line-height: 1.7;
+        }
+        
+        :global(.blog-content h1) {
+          font-size: 2rem;
+          font-weight: bold;
+          margin: 1.5rem 0 1rem 0;
+          line-height: 1.3;
+        }
+        
+        :global(.blog-content h2) {
+          font-size: 1.75rem;
+          font-weight: bold;
+          margin: 1.25rem 0 0.75rem 0;
+          line-height: 1.3;
+        }
+        
+        :global(.blog-content h3) {
+          font-size: 1.5rem;
+          font-weight: bold;
+          margin: 1rem 0 0.5rem 0;
+          line-height: 1.3;
+        }
+        
+        :global(.blog-content strong) {
+          font-weight: bold;
+        }
+        
+        :global(.blog-content em) {
+          font-style: italic;
+        }
+        
+        :global(.blog-content u) {
+          text-decoration: underline;
+        }
+        
+        :global(.blog-content strike) {
+          text-decoration: line-through;
+        }
+        
+        :global(.blog-content pre) {
+          background-color: #f3f4f6;
+          padding: 1rem;
+          border-radius: 0.375rem;
+          margin: 1rem 0;
+          overflow-x: auto;
+          font-family: 'Courier New', monospace;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+        
+        :global(.blog-content code) {
+          background-color: #f3f4f6;
+          padding: 0.125rem 0.25rem;
+          border-radius: 0.25rem;
+          font-family: 'Courier New', monospace;
+          font-size: 0.875em;
+        }
+        
+        :global(.blog-content blockquote) {
+          border-left: 4px solid #d1d5db;
+          padding-left: 1rem;
+          margin: 1rem 0;
+          font-style: italic;
+          color: #6b7280;
+        }
+        
+        :global(.blog-content ul) {
+          list-style-type: disc;
+          margin-left: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        :global(.blog-content ol) {
+          list-style-type: decimal;
+          margin-left: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        :global(.blog-content li) {
+          margin-bottom: 0.25rem;
+          line-height: 1.6;
+        }
+        
+        :global(.blog-content a) {
+          color: #3b82f6;
+          text-decoration: underline;
+        }
+        
+        :global(.blog-content a:hover) {
+          color: #1d4ed8;
+        }
+        
+        /* Handle different font sizes */
+        :global(.blog-content [style*="font-size"]) {
+          line-height: 1.4;
+        }
+        
+        /* Preserve spacing for formatted content */
+        :global(.blog-content br) {
+          margin-bottom: 0.5rem;
+        }
+      `}</style>
     </div>
   );
 };

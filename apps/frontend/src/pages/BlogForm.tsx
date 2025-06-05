@@ -3,6 +3,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/RichTextEditor"; // Import the rich text editor
 import axios from "axios";
 import BlogSkeleton from "@/components/BlogSkeleton";
 import { Footer } from "@/components/Footer";
@@ -40,7 +41,13 @@ export function BlogForm() {
       setErrors({ title: "Title is required" });
       return;
     }
-    if (!formData.content.trim()) {
+    
+    // For rich text content, we need to check if there's actual content (not just HTML tags)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = formData.content;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (!textContent.trim()) {
       setErrors({ content: "Content is required" });
       return;
     }
@@ -141,18 +148,16 @@ export function BlogForm() {
                   )}
                 </div>
 
-                {/* Content */}
+                {/* Rich Text Content Editor */}
                 <div 
                   className="mb-6"
                   style={getAnimationStyle(400)}
                 >
-                  <Textarea
-                    id="content"
+                  <RichTextEditor
                     value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    onChange={(content) => setFormData({ ...formData, content })}
                     placeholder="Write your blog..."
-                    className="min-h-[280px] sm:min-h-[320px] md:min-h-[420px] w-full p-6 text-gray-800 text-lg sm:text-xl md:text-2xl font-serif leading-relaxed bg-white/20 rounded-md border-0"
-                    aria-invalid={!!errors.content}
+                    error={!!errors.content}
                   />
                   {errors.content && (
                     <p className="text-sm text-red-600 mt-1 ml-1">{errors.content}</p>

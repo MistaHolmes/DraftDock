@@ -30,6 +30,13 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
   
+  // Function to strip HTML tags
+  const stripHtmlTags = (html: string) => {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || "";
+  };
+  
   const handleClick = (id: string) => {
     navigate(`/blog/${id}`);
   };
@@ -77,8 +84,8 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
               <div className="flex justify-between text-sm text-gray-500 mb-2">
                 <span>{post.published}</span>
               </div>
-              <h3 className="text-xl font-semibold mb-2">{post.title}</h3>
-              <p className="text-gray-700 text-sm">{post.summary}</p>
+              <h3 className="text-xl font-semibold mb-2">{stripHtmlTags(post.title)}</h3>
+              <p className="text-gray-700 text-sm">{stripHtmlTags(post.summary)}</p>
               <div className="mt-4 flex items-center justify-between text-sm text-gray-600 font-medium">
                 <span>By {post.author}</span>
                 <ShareButton
