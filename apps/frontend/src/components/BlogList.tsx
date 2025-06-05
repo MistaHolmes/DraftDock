@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,37 +21,38 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 4;
-  
-  // Calculate total number of pages
+  const scrollRef = useRef<HTMLDivElement>(null); // ✅ Ref for scrolling
+
   const totalPages = Math.ceil(posts.length / postsPerPage);
-  
-  // Get current posts
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
-  
-  // Function to strip HTML tags
+
   const stripHtmlTags = (html: string) => {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
     return tempDiv.textContent || tempDiv.innerText || "";
   };
-  
+
   const handleClick = (id: string) => {
     navigate(`/blog/${id}`);
   };
-  
+
+  const scrollToTop = () => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const goToNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setCurrentPage(prev => prev + 1);
+      scrollToTop(); // ✅ Scroll to top on next
     }
   };
-  
+
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setCurrentPage(prev => prev - 1);
+      scrollToTop(); // ✅ Scroll to top on back
     }
   };
 
@@ -59,6 +60,8 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
 
   return (
     <div className="flex flex-col items-center gap-4">
+      <div ref={scrollRef}></div> {/* 👈 Scroll Target */}
+
       {posts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">No blogs available</p>
@@ -107,37 +110,30 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
               </div>
             </motion.div>
           ))}
-          
+
           {/* Pagination Controls */}
           {posts.length > 0 && (
             <div className="flex items-center justify-between mt-6 gap-4">
               {currentPage > 1 && (
-                <Button 
-                  onClick={goToPreviousPage} 
-                  className="flex items-center gap-1"
-                >
+                <Button onClick={goToPreviousPage} className="flex items-center gap-1">
                   <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
               )}
-              
+
               <div className="text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </div>
-              
+
               {currentPage < totalPages && (
-                <Button 
-                  onClick={goToNextPage} 
-                  className="flex items-center gap-1"
-                >
+                <Button onClick={goToNextPage} className="flex items-center gap-1">
                   Next
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               )}
             </div>
           )}
-          
-          {/* Message when no more pages are available */}
+
           {currentPage === totalPages && posts.length > 0 && (
             <p className="mt-2 text-gray-500 italic">No more drafts — dock a new one!</p>
           )}

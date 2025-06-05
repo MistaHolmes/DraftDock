@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import RichTextEditor from "@/components/RichTextEditor"; // Import the rich text editor
+import RichTextEditor from "@/components/RichTextEditor";
 import axios from "axios";
 import BlogSkeleton from "@/components/BlogSkeleton";
 import { Footer } from "@/components/Footer";
 import Header2 from "@/components/ui/header2";
+const titleRef = useRef<HTMLTextAreaElement>(null);
 
 export function BlogForm() {
   const navigate = useNavigate();
@@ -37,44 +38,46 @@ export function BlogForm() {
     e.preventDefault();
     setErrors({});
 
-    if (!formData.title.trim()) {
-      setErrors({ title: "Title is required" });
-      return;
-    }
+  if (!formData.title.trim()) {
+    setErrors({ title: "Title is required" });
+    titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
     
-    // For rich text content, we need to check if there's actual content (not just HTML tags)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = formData.content;
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+  // For rich text content, we need to check if there's actual content (not just HTML tags)
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = formData.content;
+  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+  
+  if (!textContent.trim()) {
+    setErrors({ content: "Content is required" });
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // 👈 Add this line
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    const token = await getToken();
+    if (!token) throw new Error("Authentication required");
+
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
     
-    if (!textContent.trim()) {
-      setErrors({ content: "Content is required" });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const token = await getToken();
-      if (!token) throw new Error("Authentication required");
-
-      const API_URL = import.meta.env.VITE_API_BASE_URL;
-      
-      const response = await axios.post(
-        `${API_URL}/api/create-blog`,
-        { ...formData, published: !isDraft },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          withCredentials: true,
-        }
-      );
-
-      if (response.status === 201) {
-        navigate("/blogs");
+    const response = await axios.post(
+      `${API_URL}/api/create-blog`,
+      { ...formData, published: !isDraft },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
       }
-    } catch (error) {
+    );
+
+    if (response.status === 201) {
+      navigate("/blogs");
+    }
+  } catch (error) {
       console.error("Submission error:", error);
       setErrors({
         server: axios.isAxiosError(error)
@@ -142,6 +145,7 @@ export function BlogForm() {
                     placeholder="Blog Title"
                     className="font-serif text-4xl sm:text-5xl md:text-4xl font-semibold text-gray-900 bg-transparent border-0 focus:outline-none focus:ring-0 resize-none leading-tight h-[70px] sm:h-[90px] md:h-[110px] p-0"
                     aria-invalid={!!errors.title}
+                    ref={titleRef}
                   />
                   {errors.title && (
                     <p className="text-sm text-red-600 mt-1">{errors.title}</p>

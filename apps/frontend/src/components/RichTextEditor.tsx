@@ -72,8 +72,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
     editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    updateFormats(); // optional but good to reflect toolbar state
     handleInput();
   };
 
@@ -345,6 +346,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             h3 { font-size: 1.25em; font-weight: bold; margin: 0.3em 0; }
             ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
             li { margin: 0.25em 0; }
+            ul, ol {
+              list-style-position: inside; /* shows bullet/number inside the padding */
+              padding-left: 0; /* use margin instead to control spacing */
+              margin: 1em 0;
+            }
+
+            li {
+              margin-left: 1.25em; /* indent each list item */
+              padding-left: 0.25em;
+              line-height: 1.6; /* make multi-line items readable */
+            }
+
+            ul {
+              list-style-type: disc; /* bullet points */
+            }
+
+            ol {
+              list-style-type: decimal; /* numbers */
+            }
+
+            li {
+              margin: 0.25em 0;
+            }
+
           `}
         </style>
       </div>
