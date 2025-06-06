@@ -8,9 +8,9 @@ import axios from "axios";
 import BlogSkeleton from "@/components/BlogSkeleton";
 import { Footer } from "@/components/Footer";
 import Header2 from "@/components/ui/header2";
-const titleRef = useRef<HTMLTextAreaElement>(null);
 
 export function BlogForm() {
+  const titleRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const [formData, setFormData] = useState({
