@@ -1,6 +1,6 @@
 import { UserButton } from "@clerk/clerk-react";
-import Header3 from "./ui/header3";
-import UserContentSection from "./UserContent";
+import Header3 from "../components/ui/header3";
+import UserContentSection from "../components/UserContent";
 
 const ProfileComponent = () => {
   return (
@@ -18,7 +18,7 @@ const ProfileComponent = () => {
             <div className="md:w-3/4">
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">Manage Your Account</h2>
             <p className="text-gray-600">
-                Access and update your personal details, security settings, and view your recent activity. Use the profile menu to manage your account efficiently.
+              Access and update your personal details, security settings, and view your recent activity. Use the profile menu to manage your account efficiently.
             </p>
             </div>
             {/* User Button Section */}

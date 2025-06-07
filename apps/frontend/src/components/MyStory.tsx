@@ -21,7 +21,7 @@ export function MyStory() {
           <section className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <Heart className="w-6 h-6 text-red-500" />
-              <h2 className="text-2xl font-semibold text-gray-900">Hello, I'm Abhas</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">Hello, I'm Abhash</h2>
             </div>
             <p className="text-gray-700 leading-relaxed">
               Welcome to my corner of the internet! I'm a passionate developer and writer who believes that 

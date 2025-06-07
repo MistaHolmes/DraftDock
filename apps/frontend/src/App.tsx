@@ -8,7 +8,7 @@ import BlogView from "./pages/BlogView";
 import HomeRedirector from "./components/HomeRedirector";
 import { MyStory } from "./components/MyStory";
 import { Contact } from "./components/Contact";
-import ProfileComponent from "./components/Profile";
+import ProfileComponent from "./pages/Profile";
 
 const App: React.FC = () => {
   return (

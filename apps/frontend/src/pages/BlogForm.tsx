@@ -175,7 +175,7 @@ export function BlogForm() {
                 >
                   <Button
                     type="button"
-                    onClick={() => navigate("/blogs")}
+                    onClick={() => navigate(-1)}
                     className="w-full sm:w-auto order-3 sm:order-1 transform transition-all duration-200 hover:scale-105"
                   >
                     Cancel
