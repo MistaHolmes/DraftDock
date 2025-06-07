@@ -130,7 +130,7 @@ const LandingPage: React.FC = () => {
               variants={itemVariants}
               className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto px-4"
             >
-              Write and Like Blogs of Folks, and Have a great time in this site
+              Read And Write Blogs of Folks, and Have a great time in this site
             </motion.p>
 
             <motion.div

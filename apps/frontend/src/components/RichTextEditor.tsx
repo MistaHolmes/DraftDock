@@ -98,6 +98,41 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     handleInput();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const currentNode = selection.anchorNode;
+    const preElement = currentNode?.parentElement?.closest('pre');
+
+    if (e.key === 'Enter' && preElement) {
+      if (e.shiftKey) {
+        e.preventDefault();
+
+        editorRef.current?.focus();
+
+        document.execCommand('insertLineBreak');
+
+      } else {
+        e.preventDefault();
+
+        const newDiv = document.createElement('div');
+        newDiv.innerHTML = '<br>';
+
+        preElement.parentNode?.insertBefore(newDiv, preElement.nextSibling);
+
+        const newRange = document.createRange();
+        newRange.setStart(newDiv, 0);
+        newRange.collapse(true);
+
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        editorRef.current?.focus();
+      }
+    }
+  };
+
   const handleTextColor = (color: string) => {
     execCommand('foreColor', color);
     setShowColorDropdown(false);
@@ -320,6 +355,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onKeyDown={handleKeyDown}
           className={`min-h-[280px] sm:min-h-[320px] md:min-h-[420px] w-full px-2 py-4 text-gray-800 text-lg sm:text-xl md:text-2xl font-serif leading-relaxed focus:outline-none prose-code:rounded-md prose-code:bg-[#1e1e1e] prose-code:text-white prose-code:px-3 prose-code:py-2 prose-code:font-mono prose-code:whitespace-pre-wrap ${error ? 'border-red-500' : ''}`}
           style={{ wordWrap: 'break-word' }}
           suppressContentEditableWarning={true}
@@ -341,9 +377,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               white-space: pre-wrap;
               overflow-x: auto;
             }
-            h1 { font-size: 2em; font-weight: bold; margin: 0.5em 0; }
-            h2 { font-size: 1.5em; font-weight: bold; margin: 0.4em 0; }
-            h3 { font-size: 1.25em; font-weight: bold; margin: 0.3em 0; }
+            h2 { font-size: 1.25em; font-weight: bold; margin: 0.4em 0; }
+            h3 { font-size: 1.05em; font-weight: bold; margin: 0.3em 0; }
             ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
             li { margin: 0.25em 0; }
             ul, ol {
@@ -370,6 +405,39 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               margin: 0.25em 0;
             }
 
+            .editor p {
+              margin: 0 0 0.4em 0;
+            }
+
+            .editor div {
+              margin: 0 0 0.4em 0;
+            }
+
+            .editor br {
+              line-height: 1.3;
+            }
+
+            .editor * {
+              box-sizing: border-box;
+            }
+
+            .editor p,
+            .editor div,
+            .editor h1,
+            .editor h2,
+            .editor h3,
+            .editor h4,
+            .editor h5,
+            .editor h6,
+            .editor blockquote,
+            .editor ul,
+            .editor ol,
+            .editor pre {
+              margin-top: 0;
+              margin-bottom: 0.3em; /* smaller spacing, adjust to your liking */
+              padding: 0;
+              line-height: 1.3; /* tighter line height */
+            }
           `}
         </style>
       </div>
