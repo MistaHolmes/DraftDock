@@ -8,6 +8,7 @@ import BlogView from "./pages/BlogView";
 import HomeRedirector from "./components/HomeRedirector";
 import { MyStory } from "./components/MyStory";
 import { Contact } from "./components/Contact";
+import ProfileComponent from "./components/Profile";
 
 const App: React.FC = () => {
   return (
@@ -20,6 +21,7 @@ const App: React.FC = () => {
         <Route path="/blog/:blogId" element={<RequireAuth><BlogView /></RequireAuth>}/>
         <Route path="/my-story" element={<MyStory />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/profile" element={<ProfileComponent />} />
       </Routes>
     </Router>
   );

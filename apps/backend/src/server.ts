@@ -250,10 +250,9 @@ app.get('/api/user', requireAuth(), async (req, res) => {
   }
 });
 
-app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
+app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
   try {
     const user = await syncUser(req);
-
     const { title, content, published } = req.body;
 
     if (!title || !content || typeof published !== "boolean") {
@@ -268,28 +267,35 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
         authorId: user.id,
       },
     });
-    
-    const notification = await prisma.notification.create({
-      data: {
-        message: `Your blog "${title}" was successfully published.`,
-        userId: user.id,
-        read: false,
-      },
-    });
 
-    // Invalidate notifications cache for this user
-    const cacheKey = `user_notifications:${user.id}`;
-    const notifications = await prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-    });
-    await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
+    let notifications = [];
 
-    // Broadcast notification update to user via WebSocket
-    await broadcastNotificationUpdate(user.id);
+    if (published) {
+      // ✅ Only send notification if published
+      const notification = await prisma.notification.create({
+        data: {
+          message: `Your blog "${title}" was successfully published.`,
+          userId: user.id,
+          read: false,
+        },
+      });
 
+      // Invalidate notifications cache
+      const cacheKey = `user_notifications:${user.id}`;
+      notifications = await prisma.notification.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
+
+      // Broadcast notification update
+      await broadcastNotificationUpdate(user.id);
+    }
+
+    // Invalidate blog cache regardless of publish state
     await redisClient.del('blogs:all');
-    return res.status(201).json({ blog: newBlog, notifications });
+
+    return res.status(201).json({ blog: newBlog });
   } catch (error) {
     console.error("Failed to create blog:", error);
     return res.status(500).json({
@@ -298,6 +304,7 @@ app.post('/api/create-blog', requireAuth(), async (req, res:any) => {
     });
   }
 });
+
 
 app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
   try {
@@ -324,6 +331,35 @@ app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
     return res.json({ blogs });
   } catch (error) {
     console.error(error);
+    return res.status(500).json({ message: "Failed to fetch user blogs" });
+  }
+});
+
+app.get('/api/user/blogs/all', requireAuth(), async (req, res:any) => {
+  try {
+    const user = await syncUser(req);
+    console.log("Prisma user from syncUser:", user);
+
+    if (!user) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const cacheKey = `user_blogs:${user.id}`;
+    const cachedBlogs = await redisClient.get(cacheKey);
+    if (cachedBlogs) {
+      return res.json({ blogs: JSON.parse(cachedBlogs) });
+    }
+
+    const blogs = await prisma.blog.findMany({
+      where: { authorId: user.id },
+      orderBy: { updatedAt: 'desc' },  
+    });
+
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs)); 
+
+    return res.json({ blogs });
+  } catch (error) {
+    console.error("Error fetching user blogs:", error);
     return res.status(500).json({ message: "Failed to fetch user blogs" });
   }
 });
@@ -408,6 +444,63 @@ app.patch('/api/user/notifications/read-all', requireAuth(), async (req, res: an
   } catch (error) {
     console.error("Failed to mark notifications as read:", error);
     return res.status(500).json({ message: "Failed to mark as read" });
+  }
+});
+
+app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
+  const blogId = req.params.id;
+
+  try {
+    // Check if the blog exists
+    const existingBlog = await prisma.blog.findUnique({
+      where: { id: blogId },
+    });
+
+    if (!existingBlog) {
+      return res.status(404).json({ error: "Blog not found" });
+    }
+
+    // Delete the blog
+    await prisma.blog.delete({
+      where: { id: blogId },
+    });
+
+    // Invalidate cache
+    await redisClient.del('blogs:all'); // all blogs cache
+    await redisClient.del(`blog:${blogId}`); // individual blog cache if exists
+
+    res.status(200).json({ message: "Blog deleted successfully" });
+  } catch (err) {
+    console.error("Delete blog error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+// Publish Draft
+app.patch("/api/draft/publish/:id",requireAuth(), async (req, res:any) => { 
+  const blogId = req.params.id;
+
+  try {
+    // Check if the blog exists
+    const existingBlog = await prisma.blog.findUnique({
+      where: { id: blogId },
+    });
+
+    if (!existingBlog) {
+      return res.status(404).json({ error: "Blog not found" });
+    }
+
+    // Update the blog
+    await prisma.blog.update({
+      where: { id: blogId },
+      data: { published: true },
+    });
+
+    res.status(200).json({ message: "Draft published successfully" });
+  } catch (err) {
+    console.error("Publish draft error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

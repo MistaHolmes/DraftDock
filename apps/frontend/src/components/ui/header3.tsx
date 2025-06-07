@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Ship, Plus,ArrowRight } from "lucide-react";
+import { Ship, Plus } from "lucide-react";
 import { Notifications } from "../Notifications";
 import { ProfileButton } from "./profilebutton";
 
@@ -33,16 +33,16 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = "default
   );
 };
 
-const Header2 = () => {
+const Header3 = () => {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-gray-50 p-4 md:px-6 flex items-center justify-between">
+    <header className="sticky top-0 z-10 border-b bg-white/80 p-4 md:px-6 flex items-center justify-between">
       {/* Left: Logo */}
       <div className="flex items-center gap-2 max-w-md flex-shrink-0">
         <Button
           variant="ghost"
-          onClick={() => navigate("/landing")}
+          onClick={() => navigate("/blogs")}
           className="flex items-center gap-2 px-2 pl-1 text-[20px] font-semibold bg-transparent text-black hover:bg-transparent hover:text-black focus:text-black active:text-black font-serif tracking-tight"
         >
           <Ship className="h-6 w-6 text-black" />
@@ -57,13 +57,9 @@ const Header2 = () => {
         onClick={() => navigate("/create-blog")}>
           Create
         </ProfileButton>
-        <ProfileButton variant="expandIcon" Icon={() => <ArrowRight className="h-4 w-4" />} iconPlacement="right"
-        onClick={() => navigate("/profile")}>
-          Profile
-        </ProfileButton>
       </div>
     </header>
   );
 };
 
-export default Header2;
+export default Header3;

@@ -1,8 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Ship, Search, Plus } from "lucide-react";
-import { SignedIn, UserButton } from "@clerk/clerk-react";
+import { Ship, Search, Plus, ArrowRight } from "lucide-react";
 import { Notifications } from "../Notifications";
+import { ProfileButton } from "./profilebutton";
+
 
 interface HeaderProps {
   searchTerm: string;
@@ -89,19 +90,17 @@ const Header: React.FC<HeaderProps> = ({ searchTerm, setSearchTerm }) => {
 
       {/* Right: Buttons & User */}
       <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-        <Button
-          className="gap-2 text-xs md:text-sm"
-          onClick={() => navigate("/create-blog")}
-        >
-          <span className="hidden sm:inline">Create</span>
-          <Plus className="h-3 w-3 md:h-4 md:w-4" />
-        </Button>
         <div className="flex justify-end items-center">
           <Notifications />
         </div>
-        <SignedIn>
-          <UserButton />
-        </SignedIn>
+        <ProfileButton variant="expandIcon" Icon={() => <Plus className="h-3 w-3 md:h-4 md:w-4" />} iconPlacement="right"
+        onClick={() => navigate("/create-blog")}>
+          Create
+        </ProfileButton>
+        <ProfileButton variant="expandIcon" Icon={() => <ArrowRight className="h-4 w-4" />} iconPlacement="right"
+        onClick={() => navigate("/profile")}>
+          Profile
+        </ProfileButton>
       </div>
     </header>
   );
