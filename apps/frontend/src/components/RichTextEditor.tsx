@@ -27,6 +27,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   error = false,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
+  const colorDropdownRef = useRef<HTMLDivElement>(null);
+  const fontFamilyDropdownRef = useRef<HTMLDivElement>(null);
+
   const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
   const [showColorDropdown, setShowColorDropdown] = useState(false);
   const [showFontFamilyDropdown, setShowFontFamilyDropdown] = useState(false);
@@ -74,7 +78,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const execCommand = (command: string, value?: string) => {
     editorRef.current?.focus();
     document.execCommand(command, false, value);
-    updateFormats(); // optional but good to reflect toolbar state
+    updateFormats();
     handleInput();
   };
 
@@ -108,11 +112,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (e.key === 'Enter' && preElement) {
       if (e.shiftKey) {
         e.preventDefault();
-
         editorRef.current?.focus();
-
         document.execCommand('insertLineBreak');
-
       } else {
         e.preventDefault();
 
@@ -153,6 +154,27 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     execCommand('formatBlock', isCode ? 'div' : 'pre');
     updateFormats();
   };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        fontSizeDropdownRef.current && !fontSizeDropdownRef.current.contains(target) &&
+        colorDropdownRef.current && !colorDropdownRef.current.contains(target) &&
+        fontFamilyDropdownRef.current && !fontFamilyDropdownRef.current.contains(target)
+      ) {
+        setShowFontSizeDropdown(false);
+        setShowColorDropdown(false);
+        setShowFontFamilyDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const fontSizes = [
     { label: '12px (Tiny)', value: '12px' },
@@ -229,7 +251,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <div className="w-px h-6 bg-gray-300 mx-1" />
 
           {/* Font Family Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={fontFamilyDropdownRef}>
             <button
               onClick={() => setShowFontFamilyDropdown(!showFontFamilyDropdown)}
               className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-sm transition-colors"
@@ -255,7 +277,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </div>
 
           {/* Font Size Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={fontSizeDropdownRef}>
             <button
               onClick={() => setShowFontSizeDropdown(!showFontSizeDropdown)}
               className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-sm transition-colors"
@@ -280,7 +302,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </div>
 
           {/* Color Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={colorDropdownRef}>
             <button
               onClick={() => setShowColorDropdown(!showColorDropdown)}
               className="flex items-center gap-1 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-sm transition-colors"
@@ -382,23 +404,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
             li { margin: 0.25em 0; }
             ul, ol {
-              list-style-position: inside; /* shows bullet/number inside the padding */
-              padding-left: 0; /* use margin instead to control spacing */
+              list-style-position: inside;
+              padding-left: 0;
               margin: 1em 0;
             }
 
             li {
-              margin-left: 1.25em; /* indent each list item */
+              margin-left: 1.25em;
               padding-left: 0.25em;
-              line-height: 1.6; /* make multi-line items readable */
+              line-height: 1.6;
             }
 
             ul {
-              list-style-type: disc; /* bullet points */
+              list-style-type: disc;
             }
 
             ol {
-              list-style-type: decimal; /* numbers */
+              list-style-type: decimal;
             }
 
             li {
@@ -434,9 +456,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             .editor ol,
             .editor pre {
               margin-top: 0;
-              margin-bottom: 0.3em; /* smaller spacing, adjust to your liking */
+              margin-bottom: 0.3em;
               padding: 0;
-              line-height: 1.3; /* tighter line height */
+              line-height: 1.3;
             }
           `}
         </style>
