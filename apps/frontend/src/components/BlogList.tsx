@@ -82,7 +82,7 @@ const BlogList: React.FC<BlogListProps> = ({ posts }) => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.5 }}
-              className="w-full max-w-3xl border rounded-lg px-6 py-4 shadow-sm bg-white/70 cursor-pointer hover:shadow-md transition-shadow"
+              className="w-full max-w-3xl border rounded-lg px-6 py-4 shadow-sm bg-white/70 cursor-pointer hover:shadow-md transition-shadow hover:text-gray-500"
             >
               <div className="flex justify-between text-sm text-gray-500 mb-2">
                 <span>{post.published}</span>

@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import cors  from 'cors';
 import bodyParser from 'body-parser';
 import { createClient } from 'redis';
+import { sendBlogPublishedEmail } from './email';
 
 const redisClient = createClient({
   url: 'redis://localhost:6379',
@@ -40,9 +41,8 @@ const userConnections = new Map<string, UserConnection>();
 
 const wss = new WebSocketServer({ server });
 
-// Ping interval (30 seconds)
-const PING_INTERVAL = 60000; // 60 seconds
-const PONG_TIMEOUT = 10000;  // 10 seconds
+const PING_INTERVAL = 60000; 
+const PONG_TIMEOUT = 10000;  
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -181,7 +181,7 @@ async function getNotificationsForUser(userId: string) {
   return notifications;
 }
 
-// Helper function to broadcast notification updates to a user
+// Helper function to broadcast notification to a user
 function broadcastNotificationUpdate(userId: string) {
   const connection = userConnections.get(userId);
   if (!connection || connection.ws.readyState !== WebSocket.OPEN) return;
@@ -238,7 +238,7 @@ app.get('/api/blogs', async (req, res:any) => {
   }
 });
 
-// Protected routes - add requireAuth as middleware
+// Protected routes
 
 app.get('/api/user', requireAuth(), async (req, res) => {
   try {
@@ -271,7 +271,6 @@ app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
     let notifications = [];
 
     if (published) {
-      // ✅ Only send notification if published
       const notification = await prisma.notification.create({
         data: {
           message: `Your blog "${title}" was successfully published.`,
@@ -288,11 +287,10 @@ app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
       });
       await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
 
-      // Broadcast notification update
       await broadcastNotificationUpdate(user.id);
+      sendBlogPublishedEmail(user.email, title);      
     }
 
-    // Invalidate blog cache regardless of publish state
     await redisClient.del('blogs:all');
 
     return res.status(201).json({ blog: newBlog });
@@ -335,7 +333,7 @@ app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
   }
 });
 
-app.get('/api/user/blogs/all', requireAuth(), async (req, res:any) => {
+app.get('/api/user/blogs/all', requireAuth(), async (req, res: any) => {
   try {
     const user = await syncUser(req);
     console.log("Prisma user from syncUser:", user);
@@ -344,18 +342,10 @@ app.get('/api/user/blogs/all', requireAuth(), async (req, res:any) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const cacheKey = `user_blogs:${user.id}`;
-    const cachedBlogs = await redisClient.get(cacheKey);
-    if (cachedBlogs) {
-      return res.json({ blogs: JSON.parse(cachedBlogs) });
-    }
-
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
       orderBy: { updatedAt: 'desc' },  
     });
-
-    await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs)); 
 
     return res.json({ blogs });
   } catch (error) {
@@ -428,7 +418,6 @@ app.patch('/api/user/notifications/read-all', requireAuth(), async (req, res: an
       data: { read: true },
     });
 
-    // Refresh Redis cache
     const updatedNotifications = await prisma.notification.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
@@ -437,7 +426,6 @@ app.patch('/api/user/notifications/read-all', requireAuth(), async (req, res: an
       EX: 60 * 5,
     });
 
-    // Broadcast the update to user via WebSocket
     await broadcastNotificationUpdate(user.id);
 
     return res.status(200).json({ message: "All notifications marked as read" });
@@ -451,7 +439,6 @@ app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
   const blogId = req.params.id;
 
   try {
-    // Check if the blog exists
     const existingBlog = await prisma.blog.findUnique({
       where: { id: blogId },
     });
@@ -460,14 +447,20 @@ app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
       return res.status(404).json({ error: "Blog not found" });
     }
 
-    // Delete the blog
     await prisma.blog.delete({
       where: { id: blogId },
     });
 
-    // Invalidate cache
-    await redisClient.del('blogs:all'); // all blogs cache
-    await redisClient.del(`blog:${blogId}`); // individual blog cache if exists
+    try {
+      await redisClient.del(`blog:${blogId}`);
+
+      const keysToDelete = await redisClient.keys('blogs:*');
+      if (keysToDelete.length > 0) {
+        await Promise.all(keysToDelete.map(key => redisClient.del(key)));
+      }
+    } catch (cacheErr) {
+      console.warn("Redis cache invalidation failed:", cacheErr);
+    }
 
     res.status(200).json({ message: "Blog deleted successfully" });
   } catch (err) {
@@ -476,13 +469,11 @@ app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
   }
 });
 
-
-// Publish Draft
-app.patch("/api/draft/publish/:id",requireAuth(), async (req, res:any) => { 
+// Publish Drafts
+app.patch("/api/draft/publish/:id", requireAuth(), async (req, res: any) => {
   const blogId = req.params.id;
 
   try {
-    // Check if the blog exists
     const existingBlog = await prisma.blog.findUnique({
       where: { id: blogId },
     });
@@ -491,13 +482,23 @@ app.patch("/api/draft/publish/:id",requireAuth(), async (req, res:any) => {
       return res.status(404).json({ error: "Blog not found" });
     }
 
-    // Update the blog
-    await prisma.blog.update({
+    const updatedBlog = await prisma.blog.update({
       where: { id: blogId },
       data: { published: true },
     });
 
-    res.status(200).json({ message: "Draft published successfully" });
+    try {
+      await redisClient.del(`blog:${blogId}`);
+
+      const keysToDelete = await redisClient.keys('blogs:*');
+      if (keysToDelete.length > 0) {
+        await Promise.all(keysToDelete.map((key) => redisClient.del(key)));
+      }
+    } catch (cacheErr) {
+      console.warn("Redis cache invalidation failed:", cacheErr);
+    }
+
+    res.status(200).json({ message: "Draft published successfully", blog: updatedBlog });
   } catch (err) {
     console.error("Publish draft error:", err);
     res.status(500).json({ error: "Internal Server Error" });
