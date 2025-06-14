@@ -5,13 +5,21 @@ export function Footer() {
     <footer className="border-t border-gray-200 bg-transparent text-gray-700 px-6 py-8 text-sm z-10 relative">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8 md:gap-6">
+          
           {/* About Me */}
           <div className="space-y-3">
             <h3 className="font-semibold text-base text-gray-900">Resources</h3>
             <div className="flex flex-col gap-2">
               <a href="/my-story" className="hover:underline hover:text-black transition-colors">My Story</a>
               <a href="/contact" className="hover:underline hover:text-black transition-colors">Contact</a>
-              <a href="/api-docs" className="hover:underline hover:text-black transition-colors">API Docs</a>
+              <a
+                href="https://app.swaggerhub.com/apis/mistaholmes/DraftDock/0.0.1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline hover:text-black transition-colors"
+              >
+                API Docs
+              </a>
             </div>
           </div>
 
@@ -21,7 +29,14 @@ export function Footer() {
             <div className="flex flex-col gap-2">
               <a href="/create-blog" className="hover:underline hover:text-black transition-colors">Draft a Blog</a>
               <a href="/blogs" className="hover:underline hover:text-black transition-colors">Explore Drafts</a>
-              <a href="/api-docs" className="hover:underline hover:text-black transition-colors">API Docs</a>
+              <a
+                href="https://app.swaggerhub.com/apis/mistaholmes/DraftDock/0.0.1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline hover:text-black transition-colors"
+              >
+                API Docs
+              </a>
             </div>
           </div>
 
@@ -65,7 +80,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="text-gray-600 hover:text-black transition-colors"
               >
-              <Linkedin className="w-5 h-5" />
+                <Linkedin className="w-5 h-5" />
               </a>
             </div>
           </div>
