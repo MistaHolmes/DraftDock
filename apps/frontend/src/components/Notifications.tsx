@@ -37,16 +37,17 @@ export function Notifications() {
   const [count, setCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   // Get user ID and establish WebSocket connection
   useEffect(() => {
     const getUserAndConnect = async () => {
       try {
         // Fetch user info to get user ID
-        const userRes = await fetch("http://localhost:3000/api/user", {
+        const userRes = await fetch(`${API_BASE}/api/user`, {
           credentials: "include",
         });
-        
+
         if (userRes.ok) {
           const userData = await userRes.json();
           connectWebSocket(userData.id);
@@ -77,7 +78,7 @@ export function Notifications() {
 
   const connectWebSocket = (userIdParam: string) => {
     try {
-      const ws = new WebSocket('ws://localhost:3000');
+      const ws = new WebSocket(API_BASE.replace(/^http/, 'ws'));
       wsRef.current = ws;
 
       // Keep track of ping/pong for connection health
@@ -182,10 +183,9 @@ export function Notifications() {
     }
   };
 
-  // Fallback HTTP method for fetching notifications
   const fetchNotifications = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/user/notifications", {
+      const res = await fetch(`${API_BASE}/api/user/notifications`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch notifications");
@@ -207,9 +207,7 @@ export function Notifications() {
     if (newIsOpen && count > 0) {
       try {
         // Mark all as read
-        const patchRes = await fetch(
-          "http://localhost:3000/api/user/notifications/read-all",
-          {
+        const patchRes = await fetch(`${API_BASE}/api/user/notifications/read-all`, {
             method: "PATCH",
             credentials: "include",
             headers: { "Content-Type": "application/json" },

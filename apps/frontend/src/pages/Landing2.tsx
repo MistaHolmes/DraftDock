@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { motion, useMotionValue, useSpring, easeOut, easeInOut } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, } from "@clerk/clerk-react";
 import TypeWriter from "../components/TypeWriter";
@@ -49,7 +49,7 @@ const LandingPage: React.FC = () => {
       y: 0,
       transition: {
         duration: 0.5,
-        ease: "easeOut",
+        ease: easeOut,
       },
     },
   };
@@ -72,7 +72,7 @@ const LandingPage: React.FC = () => {
             }}
             transition={{ 
               duration: 20, 
-              ease: "easeInOut", 
+              ease: easeInOut, 
               repeat: Infinity 
             }}
             className="absolute inset-0"

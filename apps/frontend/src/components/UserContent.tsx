@@ -72,7 +72,7 @@ const UserContentSection = () => {
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL;
-
+  console.log(API_URL);
   const stripHtmlTags = (html: string) => {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
@@ -143,6 +143,7 @@ const UserContentSection = () => {
     async function fetchUserBlogs() {
       try {
         setLoading(true);
+        console.log(API_URL);
         const res = await fetch(`${API_URL}/api/user/blogs/all`, {
           credentials: 'include'
         });
