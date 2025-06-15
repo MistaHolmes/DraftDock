@@ -19,7 +19,7 @@ dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const port = process.env.PORT || 3000;
+const port = parseInt(process.env.PORT || '3000', 10);
 const server = http.createServer(app);
 
 app.use(clerkMiddleware());
@@ -505,6 +505,21 @@ app.patch("/api/draft/publish/:id", requireAuth(), async (req, res: any) => {
   }
 });
 
-server.listen(port, () => {
-  console.log(`http://localhost:${port}`);
+app.get("/redis-test", async (req, res) => {
+  try {
+    await redisClient.set("health", "ok");
+    const value = await redisClient.get("health");
+    res.send({ redis: value });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Redis error");
+  }
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Server running at http://0.0.0.0:${port}`);
 });

@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: backend-deployment
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: your-registry.io/your-backend:latest
+          image: gcr.io/norse-lens-462803-n3/backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:

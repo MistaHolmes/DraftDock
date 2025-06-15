@@ -32,7 +32,7 @@ const Blogs: React.FC = () => {
     if (!isLoaded || !user || hasFetchedAllBlogs.current) return;
     hasFetchedAllBlogs.current = true;
 
-    const API_URL = import.meta.env.VITE_API_BASE_URL;
+    const API_URL = import.meta.env.VITE_API_URL;
 
     axios
       .get(`${API_URL}/api/blogs`, { withCredentials: true })

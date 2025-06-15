@@ -71,7 +71,7 @@ const Sidebar: React.FC<{ activePage?: string }> = ({ activePage = "dock" }) => 
 
     if (shouldFetch) {
       hasFetchedUserBlogs.current = true;
-      const API_URL = import.meta.env.VITE_API_BASE_URL;
+      const API_URL = import.meta.env.VITE_API_URL;
 
       axios
         .get(`${API_URL}/api/user/blogs`, { withCredentials: true })

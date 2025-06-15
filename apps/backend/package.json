@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsc -b && node dist/server.js"
+    "dev": "tsc -b && node dist/server.js",
+    "build": "tsc -b"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
     "@prisma/client": "^6.7.0",
     "@types/nodemailer": "^6.4.17",
     "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "nodemailer": "^7.0.3",
     "prisma": "^6.7.0",

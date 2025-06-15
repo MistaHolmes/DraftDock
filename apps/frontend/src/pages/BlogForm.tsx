@@ -38,46 +38,48 @@ export function BlogForm() {
     e.preventDefault();
     setErrors({});
 
-  if (!formData.title.trim()) {
-    setErrors({ title: "Title is required" });
-    titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-    
-  // For rich text content, we need to check if there's actual content (not just HTML tags)
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = formData.content;
-  const textContent = tempDiv.textContent || tempDiv.innerText || '';
-  
-  if (!textContent.trim()) {
-    setErrors({ content: "Content is required" });
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // 👈 Add this line
-    return;
-  }
-
-  setIsSubmitting(true);
-  try {
-    const token = await getToken();
-    if (!token) throw new Error("Authentication required");
-
-    const API_URL = import.meta.env.VITE_API_BASE_URL;
-    
-    const response = await axios.post(
-      `${API_URL}/api/create-blog`,
-      { ...formData, published: !isDraft },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (response.status === 201) {
-      navigate("/blogs");
+    if (!formData.title.trim()) {
+      setErrors({ title: "Title is required" });
+      titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
-  } catch (error) {
+      
+    // For rich text content, we need to check if there's actual content (not just HTML tags)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = formData.content;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (!textContent.trim()) {
+      setErrors({ content: "Content is required" });
+      window.scrollTo({ top: 0, behavior: 'smooth' }); 
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication required");
+
+      const API_URL = import.meta.env.VITE_API_URL;
+      console.log("API_URL", import.meta.env.VITE_API_URL);
+
+      const response = await axios.post(
+        `${API_URL}/api/create-blog`,
+        { ...formData, published: !isDraft },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (response.status === 201) {
+        navigate("/blogs");
+      }
+    } 
+    catch (error) {
       console.error("Submission error:", error);
       setErrors({
         server: axios.isAxiosError(error)

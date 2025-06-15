@@ -21,7 +21,7 @@ const BlogView = () => {
   const { blogId } = useParams();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [copied, setCopied] = useState(false);
-  const API_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchBlog = async () => {
