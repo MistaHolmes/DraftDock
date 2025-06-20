@@ -11,37 +11,54 @@
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/draftdock
-cd draftdock
+git clone https://github.com/MistaHolmes/DraftDock.git
+cd DraftDock
 ````
+
+### 2. Start Services with Docker Compose
+
+Make sure Docker is installed and running.
+
+```bash
+docker-compose up -d
+```
+
+This starts required backend services like the database and Redis.
+
+### 3. Install Node Dependencies
+
+```bash
+npm install
+```
+
+### 4. Start the Dev Server
+
+```bash
+npm run dev
+```
+
+This will start the development server.
+Now open the frontend at: [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## 🐳 Run with Docker
+## 🐳 Run Deployed Frontend Locally (Optional)
 
-### Build the Docker Image
+To run the deployed frontend Docker image locally:
+
+### 1. Pull the Docker Image
 
 ```bash
-docker build -t draftdock .
+docker pull mistaholmes/draftdockfe:latest
 ```
 
-### Run the Container
+### 2. Run the Container
 
 ```bash
-docker run -p 3000:3000 draftdock
+docker run -p 3000:3000 mistaholmes/draftdockfe:latest
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## 🐙 Run with Docker Compose
-
-If you have a `docker-compose.yml` file at the root, you can spin up all services for local testing:
-
-```bash
-docker-compose up --build
-```
 
 ---
 
@@ -82,3 +99,4 @@ Frontend is deployed at:
 ## 🛠️ License
 
 MIT
+
