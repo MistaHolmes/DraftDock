@@ -1,29 +1,34 @@
-# Stage 1: Build the Vite React app
-FROM node:20-alpine AS builder
+# ---------- Stage 1: Build ----------
+FROM node:18-alpine as builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
-
-# Install dependencies
+# Copy dependency files and install
 COPY package*.json ./
 RUN npm install
 
-# Copy source code
+# Copy source files
 COPY . .
 
-# Build the app
+# Ensure Vite picks up production mode
+ENV NODE_ENV=production
+
+# Build the project
 RUN npm run build
 
-# Stage 2: Serve with Nginx
-FROM nginx:1.25-alpine AS runner
+# ---------- Stage 2: NGINX Server ----------
+FROM nginx:stable-alpine
 
-# Copy the production build to Nginx's default html location
+# Remove default HTML files
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built frontend
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose the default HTTP port
-EXPOSE 80
+# Set Cloud Run-compatible NGINX config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Start Nginx in the foreground
+# Cloud Run expects the container to listen on port 8080
+EXPOSE 8080
+
 CMD ["nginx", "-g", "daemon off;"]

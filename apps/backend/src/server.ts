@@ -11,7 +11,7 @@ import { createClient } from 'redis';
 import { sendBlogPublishedEmail } from './email';
 
 const redisClient = createClient({
-  url: 'redis://localhost:6379',
+  url: 'redis://redis:6379',
 });
 
 redisClient.connect().catch(console.error);
@@ -24,7 +24,13 @@ const server = http.createServer(app);
 
 app.use(clerkMiddleware());
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: true
+  // ['http://localhost:5173',
+  //   'http://35.202.48.53',
+  //   'http://34.66.221.1',
+  //   'https://frontend-1113988436.asia-south1.run.app',
+  // ]
+  ,
   credentials: true
 }));
 app.use(bodyParser.json());
@@ -200,11 +206,6 @@ function broadcastNotificationUpdate(userId: string) {
   });
 }
 
-
-app.get('/', async (req, res) => {
-  res.json('HelloW')
-});
-
 // Public route - no auth required
 app.get('/api/blogs', async (req, res:any) => {
   try {
@@ -334,22 +335,29 @@ app.get('/api/user/blogs', requireAuth(), async (req, res:any) => {
 });
 
 app.get('/api/user/blogs/all', requireAuth(), async (req, res: any) => {
+  console.log("🔥 get /api/user/blogs/all HIT");
   try {
     const user = await syncUser(req);
-    console.log("Prisma user from syncUser:", user);
-
     if (!user) {
-      return res.status(401).json({ message: "User not authenticated" });
+      return res.status(401).json({ message: "User Not Authenticated" });
     }
-
+    
+    const cacheKey = `user_blogs:${user.id}`;
+    const cachedBlogs = await redisClient.get(cacheKey);
+    
+    if (cachedBlogs) {
+      return res.json({ blogs: JSON.parse(cachedBlogs) });
+    }
+    
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
-      orderBy: { updatedAt: 'desc' },  
+      orderBy: { updatedAt: 'desc' },
     });
-
+    
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));
     return res.json({ blogs });
   } catch (error) {
-    console.error("Error fetching user blogs:", error);
+    console.error(error);
     return res.status(500).json({ message: "Failed to fetch user blogs" });
   }
 });
@@ -518,6 +526,18 @@ app.get("/redis-test", async (req, res) => {
 
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
+});
+
+// app.get('/', async (req, res) => {
+//   res.json('HelloW')
+// });
+
+// Debugging Deployment Errors
+app.get('/version', (_, res) => {
+  res.json({
+    version: '🟢 blogs-route-present',
+    time: new Date().toISOString()
+  });
 });
 
 server.listen(port, '0.0.0.0', () => {

@@ -37,7 +37,7 @@ export function Notifications() {
   const [count, setCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE = import.meta.env.VITE_API_URL;
 
   // Get user ID and establish WebSocket connection
   useEffect(() => {
@@ -223,7 +223,8 @@ export function Notifications() {
         // If WebSocket is not connected, manually update the state
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {          
           // Also refetch to ensure consistency
-          const res = await fetch("http://localhost:3000/api/user/notifications", {
+          const res = await fetch(`${API_BASE}/api/user/notifications`, {
+            method: "GET",
             credentials: "include",
           });
           const data = await res.json();

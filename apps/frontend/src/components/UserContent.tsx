@@ -139,34 +139,56 @@ const UserContentSection = () => {
         }
     };
 
-  useEffect(() => {
-    async function fetchUserBlogs() {
-      try {
+    useEffect(() => {
+      console.log("🔥 useEffect entered");
+
+      const fetchUserBlogs = async () => {
+        console.log("🚀 fetchUserBlogs called");
+
         setLoading(true);
-        console.log(API_URL);
-        const res = await fetch(`${API_URL}/api/user/blogs/all`, {
-          credentials: 'include'
-        });
-        if (!res.ok) throw new Error("Failed to fetch blogs");
-        const data = await res.json();
+        setError(null);
 
-        console.log("Fetched data:", data);
+        try {
+          console.log("📦 API_URL inside fetch:", API_URL);
 
-        // Defensive check: if data.blogs is not an array, fallback to empty array
-        if (!data.blogs || !Array.isArray(data.blogs)) {
+          if (!API_URL) {
+            throw new Error("API_URL is not defined");
+          }
+
+          console.log("📡 Fetching blogs from:", `${API_URL}/api/user/blogs`);
+
+          const res = await fetch(`${API_URL}/api/user/blogs`, {
+            method: "GET",
+            credentials: "include",
+          });
+
+          const text = await res.text();
+          try {
+            const data = JSON.parse(text);
+            console.log("✅ Raw response JSON:", data);
+
+            if (!Array.isArray(data.blogs)) {
+              console.warn("Unexpected blogs format:", data);
+              setBlogs([]);
+            } else {
+              setBlogs(data.blogs);
+            }
+          } catch (parseError) {
+            console.error("❌ Failed to parse response as JSON:", text);
+            throw new Error("Invalid JSON response");
+          }
+
+        } catch (err: any) {
+          console.error("💥 Error fetching user blogs:", err);
+          setError(err.message || "Something went wrong");
           setBlogs([]);
-        } else {
-          setBlogs(data.blogs);
+        } finally {
+          setLoading(false);
         }
-      } catch (err: any) {
-        setError(err.message);
-        setBlogs([]); // fallback to empty on error
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUserBlogs();
-  }, []);
+      };
+
+      fetchUserBlogs();
+    }, []);
 
   // Separate published and draft blogs
   const publishedBlogs = blogs.filter(blog => blog.published);
