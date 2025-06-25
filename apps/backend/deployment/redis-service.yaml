@@ -5,8 +5,8 @@ metadata:
 spec:
   selector:
     app: redis
+  type: LoadBalancer
   ports:
     - protocol: TCP
       port: 6379
       targetPort: 6379
-  clusterIP: None  # Enables DNS as "redis"

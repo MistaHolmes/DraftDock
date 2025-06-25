@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Ship, Plus } from "lucide-react";
-import { Notifications } from "../Notifications";
+// import { Notifications } from "../Notifications";
 import { ProfileButton } from "./profilebutton";
 
 interface ButtonProps {
@@ -52,7 +52,7 @@ const Header3 = () => {
 
       {/* Right: Buttons & User */}
       <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-        <Notifications />
+        {/* <Notifications /> */}
         <ProfileButton variant="expandIcon" Icon={() => <Plus className="h-3 w-3 md:h-4 md:w-4" />} iconPlacement="right"
         onClick={() => navigate("/create-blog")}>
           Create

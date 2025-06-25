@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { Footer } from "./Footer";
+import { BlogSkeleton, DraftBlogSkeleton } from "./ui/blogSkeleton";
 
 interface Blog {
   id: string;
@@ -10,59 +12,14 @@ interface Blog {
   updatedAt: string;
 }
 
-// Skeleton Loading Component
-const BlogSkeleton = () => (
-  <div className="mb-4 border-b pb-4 last:border-none rounded-lg p-4 -m-4 animate-pulse">
-    <div className="flex justify-between items-start">
-      <div className="flex-1">
-        {/* Title skeleton */}
-        <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-3"></div>
-        
-        {/* Content skeleton - multiple lines */}
-        <div className="space-y-2 mb-3">
-          <div className="h-4 bg-gray-200 rounded w-full"></div>
-          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-        </div>
-        
-        {/* Date skeleton */}
-        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-      </div>
-      
-    </div>
-  </div>
-);
-
-// Draft Blog Skeleton (with draft badge)
-const DraftBlogSkeleton = () => (
-  <div className="mb-4 border-b pb-4 last:border-none rounded-lg p-4 -m-4 animate-pulse">
-    <div className="flex justify-between items-start">
-      <div className="flex-1">
-        {/* Title and badge skeleton */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="h-6 bg-gray-200 rounded-md w-2/3"></div>
-          <div className="h-6 bg-yellow-100 rounded-full w-12"></div>
-        </div>
-        
-        {/* Content skeleton */}
-        <div className="space-y-2 mb-3">
-          <div className="h-4 bg-gray-200 rounded w-full"></div>
-          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-          <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-        </div>
-        
-        {/* Date skeleton */}
-        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-      </div>
-      
-      {/* Buttons skeleton */}
-      <div className="ml-4 flex gap-2">
-        <div className="w-9 h-9 bg-gray-200 rounded-full"></div>
-        <div className="w-9 h-9 bg-gray-200 rounded-full"></div>
-      </div>
-    </div>
-  </div>
-);
+// Configure axios defaults
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 const UserContentSection = () => {
   const [activeTab, setActiveTab] = useState<"blogs" | "drafts">("blogs");
@@ -71,8 +28,7 @@ const UserContentSection = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL;
-  console.log(API_URL);
+
   const stripHtmlTags = (html: string) => {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
@@ -89,106 +45,61 @@ const UserContentSection = () => {
     setSelectedBlog(null);
   };
 
-    const handleDeleteClick = async (e: React.MouseEvent, blogId: string) => {
-        e.stopPropagation(); 
+  const handleDeleteClick = async (e: React.MouseEvent, blogId: string) => {
+    e.stopPropagation();
 
-        const confirmed = window.confirm("Are you sure you want to delete this blog?");
-        if (!confirmed) return;
+    const confirmed = window.confirm("Are you sure you want to delete this blog?");
+    if (!confirmed) return;
 
-        try {
-            const res = await fetch(`${API_URL}/api/blogs/delete/${blogId}`, {
-            method: "DELETE",
-            credentials: "include",
-            });
+    try {
+      await api.delete(`/api/blogs/${blogId}`);
+      setBlogs((prev) => prev.filter((blog) => blog.id !== blogId));
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || "Failed to delete blog";
+      alert(`Error deleting blog: ${errorMessage}`);
+    }
+  };
 
-            if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || "Failed to delete blog");
-            }
+  const handlePublishClick = async (e: React.MouseEvent, blogId: string) => {
+    e.stopPropagation();
 
-            setBlogs((prev) => prev.filter((blog) => blog.id !== blogId));
-        } catch (err: any) {
-            alert(`Error deleting blog: ${err.message}`);
-        }
+    const confirmed = window.confirm("Are you sure you want to publish this draft?");
+    if (!confirmed) return;
+
+    try {
+      await api.patch(`/api/blogs/${blogId}/publish`);
+      
+      // Update state: move blog from drafts to published
+      setBlogs((prev) =>
+        prev.map((blog) =>
+          blog.id === blogId ? { ...blog, published: true } : blog
+        )
+      );
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || err.message || "Failed to publish blog";
+      alert(`Error publishing blog: ${errorMessage}`);
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserBlogs = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await api.get('/api/user/blogs/all');
+        setBlogs(response.data.blogs || []);
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.error || err.message || "Failed to fetch blogs";
+        setError(errorMessage);
+        setBlogs([]);
+      } finally {
+        setLoading(false);
+      }
     };
-    const handlePublishClick = async (e: React.MouseEvent, blogId: string) => {
-        e.stopPropagation();
 
-        const confirmed = window.confirm("Are you sure you want to publish this draft?");
-        if (!confirmed) return;
-
-        try {
-            const res = await fetch(`${API_URL}/api/draft/publish/${blogId}`, {
-            method: "PATCH",
-            credentials: "include",
-            });
-
-            if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || "Failed to publish blog");
-            }
-
-            // Update state: move blog from drafts to published
-            setBlogs((prev) =>
-            prev.map((blog) =>
-                blog.id === blogId ? { ...blog, published: true } : blog
-            )
-            );
-        } catch (err: any) {
-            alert(`Error publishing blog: ${err.message}`);
-        }
-    };
-
-    useEffect(() => {
-      console.log("🔥 useEffect entered");
-
-      const fetchUserBlogs = async () => {
-        console.log("🚀 fetchUserBlogs called");
-
-        setLoading(true);
-        setError(null);
-
-        try {
-          console.log("📦 API_URL inside fetch:", API_URL);
-
-          if (!API_URL) {
-            throw new Error("API_URL is not defined");
-          }
-
-          console.log("📡 Fetching blogs from:", `${API_URL}/api/user/blogs`);
-
-          const res = await fetch(`${API_URL}/api/user/blogs`, {
-            method: "GET",
-            credentials: "include",
-          });
-
-          const text = await res.text();
-          try {
-            const data = JSON.parse(text);
-            console.log("✅ Raw response JSON:", data);
-
-            if (!Array.isArray(data.blogs)) {
-              console.warn("Unexpected blogs format:", data);
-              setBlogs([]);
-            } else {
-              setBlogs(data.blogs);
-            }
-          } catch (parseError) {
-            console.error("❌ Failed to parse response as JSON:", text);
-            throw new Error("Invalid JSON response");
-          }
-
-        } catch (err: any) {
-          console.error("💥 Error fetching user blogs:", err);
-          setError(err.message || "Something went wrong");
-          setBlogs([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchUserBlogs();
-    }, []);
+    fetchUserBlogs();
+  }, []);
 
   // Separate published and draft blogs
   const publishedBlogs = blogs.filter(blog => blog.published);
@@ -313,7 +224,7 @@ const UserContentSection = () => {
                         </div>
                         <button
                         onClick={(e) => handlePublishClick(e, blog.id)}
-                        className="ml-4 p-2 text-gray-400 hover:text-green-500 hover:bg-red-50 rounded-full transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                        className="ml-4 p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-full transition-colors duration-200 opacity-0 group-hover:opacity-100"
                         title="Publish draft"
                         >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
