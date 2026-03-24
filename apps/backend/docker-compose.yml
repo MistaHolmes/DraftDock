@@ -1,6 +1,5 @@
 services:
   # Backend Application
-  # Redis is now on Redis Cloud — REDIS_URL is passed via environment or .env
   backend:
     build: .
     image: mistaholmes/draftdock-be-mar-21
@@ -11,9 +10,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      WS_PORT: 3001
     ports:
-      - "3000:3000"   # HTTP / REST API & WebSocket
+      - "3000:3000"
+    networks:
+      - draftdock-network
     volumes:
       - ./logs:/app/logs
     healthcheck:
@@ -23,6 +23,90 @@ services:
       retries: 3
       start_period: 40s
 
+  # Nginx Reverse Proxy — handles HTTP + WebSocket upgrade
+  nginx:
+    image: nginx:alpine
+    container_name: draftdock-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/nginx.conf
+    networks:
+      - draftdock-network
+    depends_on:
+      backend:
+         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  nginx_logs:
+    driver: local
+
 networks:
-  default:
+  draftdock-network:
     driver: bridge
+
+configs:
+  nginx_config:
+    content: |
+      events {
+          worker_connections 1024;
+      }
+
+      http {
+          # WebSocket upgrade map — required for proper WS proxying
+          map $$http_upgrade $$connection_upgrade {
+              default upgrade;
+              '' close;
+          }
+
+          upstream backend {
+              server backend:3000;
+              keepalive 32;
+          }
+
+          server {
+              listen 80;
+              server_name _;
+
+              # Health check pass-through (no logging to reduce noise)
+              location /health {
+                  proxy_pass http://backend;
+                  proxy_http_version 1.1;
+                  access_log off;
+              }
+
+              # WebSocket connections MUST be proxied with Upgrade headers
+              location / {
+                  proxy_pass http://backend;
+                  proxy_http_version 1.1;
+
+                  # WebSocket upgrade headers (critical for ws:// / wss://)
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection $$connection_upgrade;
+
+                  # Standard proxy headers
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+
+                  # Keep WebSocket connections alive longer (default 60s is too short)
+                  proxy_read_timeout 3600s;
+                  proxy_send_timeout 3600s;
+
+                  # Disable buffering for real-time streaming
+                  proxy_buffering off;
+              }
+          }
+      }
