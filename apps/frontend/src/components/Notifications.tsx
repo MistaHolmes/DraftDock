@@ -90,12 +90,10 @@ export function Notifications() {
       const startPingInterval = () => {
         pingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            console.log('Sending ping to server');
             ws.send('ping');
             
             // Set timeout for pong response
             pongTimeout = setTimeout(() => {
-              console.log('No pong received, closing connection');
               ws.close();
             }, 5000);
           }
@@ -103,7 +101,6 @@ export function Notifications() {
       };
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setWsState(WebSocket.OPEN);
         // Register user for notifications
         ws.send(`register:${userIdParam}`);
@@ -117,7 +114,6 @@ export function Notifications() {
           
           // Handle pong response
           if (data === 'pong') {
-            console.log('Pong received from server');
             if (pongTimeout) {
               clearTimeout(pongTimeout);
               pongTimeout = null;
@@ -127,7 +123,6 @@ export function Notifications() {
 
           // Handle ping from server
           if (data === 'ping') {
-            console.log('Ping received from server, sending pong');
             ws.send('pong');
             return;
           }
@@ -138,15 +133,13 @@ export function Notifications() {
           if (parsedData.type === 'initial_notifications' || parsedData.type === 'notification_update') {
             setNotifications(parsedData.notifications);
             setCount(parsedData.unreadCount);
-            console.log('Notifications updated via WebSocket:', parsedData.unreadCount);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
         }
       };
 
-      ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
+      ws.onclose = () => {
         setWsState(WebSocket.CLOSED);
         
         // Clean up intervals and timeouts
@@ -161,7 +154,6 @@ export function Notifications() {
         
         // Attempt to reconnect after 3 seconds
         reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('Attempting to reconnect WebSocket...');
           connectWebSocket(userIdParam);
         }, 3000);
       };
@@ -278,14 +270,14 @@ export function Notifications() {
       >
         <Bell size={16} strokeWidth={2} aria-hidden="true" />
         {count > 0 && (
-          <Badge className="absolute -top-2 left-full min-w-5 -translate-x-1/2 px-1">
+          <Badge className="absolute -top-2 left-full min-w-5 -translate-x-1/2 px-1 bg-red-500 text-white font-bold border-none hover:bg-red-600">
             {count > 99 ? "99+" : count}
           </Badge>
         )}
       </NotiButton>
 
       {isOpen && (
-        <Card className="absolute right-0 mt-2 w-[90vw] max-w-md sm:w-96 z-50 shadow-lg">
+        <Card className="absolute right-0 mt-2 w-[90vw] max-w-md sm:w-96 z-50 shadow-lg bg-surface-container-lowest border border-outline-variant/30">
           <div className="relative flex items-center justify-between px-4 py-0 border-b border-gray-100 mb-2 pb-2">
             <CardTitle className="text-sm font-medium px-3 flex items-center gap-2 mt-3">
               Notifications

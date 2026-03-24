@@ -9,6 +9,9 @@ import cors from 'cors';
 import { createClient } from 'redis';
 import { sendBlogPublishedEmail } from './email';
 import rateLimit from 'express-rate-limit';
+import multer from 'multer';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import crypto from 'crypto';
 
 // MUST be first — loads REDIS_URL, DATABASE_URL etc. before anything reads process.env
 dotenv.config();
@@ -29,6 +32,22 @@ const app = express();
 const prisma = new PrismaClient();
 const port = parseInt(process.env.PORT || '3000', 10);
 const server = http.createServer(app);
+
+const s3Config = {
+  region: 'auto',
+  endpoint: process.env.R2_API_URL as string,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+};
+
+const s3 = new S3Client(s3Config);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+});
 
 app.use(clerkMiddleware());
 app.use(cors({
@@ -118,12 +137,12 @@ wss.on('connection', (ws) => {
       connectionData.isAlive = true;
       userConnections.set(userId, connectionData);
       // console.log(`Connected users: ${userConnections.size}`);
-      
+
       // Send initial notification data
       try {
         const notifications = await getNotificationsForUser(userId);
-        const unreadCount = notifications.filter((n:any) => !n.read).length;
-        
+        const unreadCount = notifications.filter((n: any) => !n.read).length;
+
         ws.send(JSON.stringify({
           type: 'initial_notifications',
           notifications,
@@ -155,60 +174,6 @@ wss.on('connection', (ws) => {
         select: { likes: true },
       });
       ws.send(JSON.stringify({ type: 'likes_update', blogId, likes: blog?.likes ?? 0 }));
-      return;
-    }
-
-    // Like a blog — increment and broadcast to all connected clients
-    if (data.startsWith('like:')) {
-      const blogId = data.split(':')[1];
-      try {
-        const updatedBlog = await prisma.blog.update({
-          where: { id: blogId },
-          data: { likes: { increment: 1 } },
-          select: { likes: true },
-        });
-        // Invalidate single-blog cache
-        await redisClient.del(`blog:${blogId}`);
-        // Broadcast updated likes to ALL connected clients
-        const payload = JSON.stringify({ type: 'likes_update', blogId, likes: updatedBlog.likes });
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(payload);
-          }
-        });
-      } catch (err) {
-        console.error('Error incrementing likes:', err);
-        ws.send(JSON.stringify({ type: 'error', message: 'Failed to like blog' }));
-      }
-      return;
-    }
-
-    // Unlike a blog — decrement (floor 0) and broadcast to all connected clients
-    if (data.startsWith('unlike:')) {
-      const blogId = data.split(':')[1];
-      try {
-        // Fetch current likes to prevent going below 0
-        const current = await prisma.blog.findUnique({
-          where: { id: blogId },
-          select: { likes: true },
-        });
-        const newLikes = Math.max(0, (current?.likes ?? 1) - 1);
-        const updatedBlog = await prisma.blog.update({
-          where: { id: blogId },
-          data: { likes: newLikes },
-          select: { likes: true },
-        });
-        await redisClient.del(`blog:${blogId}`);
-        const payload = JSON.stringify({ type: 'likes_update', blogId, likes: updatedBlog.likes });
-        wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(payload);
-          }
-        });
-      } catch (err) {
-        console.error('Error decrementing likes:', err);
-        ws.send(JSON.stringify({ type: 'error', message: 'Failed to unlike blog' }));
-      }
       return;
     }
   });
@@ -278,18 +243,64 @@ async function broadcastNotificationUpdate(userId: string) {
   prisma.notification.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
-  }).then(notifications => {
-    const unreadCount = notifications.filter(n => !n.read).length;
+  }).then((notifications: any[]) => {
+    const unreadCount = notifications.filter((n: any) => !n.read).length;
     connection.ws.send(JSON.stringify({
       type: 'notification_update',
       notifications,
       unreadCount,
     }));
-  }).catch(err => console.error('broadcastNotificationUpdate error:', err));
+  }).catch((err: any) => console.error('broadcastNotificationUpdate error:', err));
 }
 
+// ── Image Upload ─────────────────────────────────────────────────────────────
+// POST /api/upload — upload image to Cloudflare R2, returns public URL
+
+const handleUploadError = (err: any, req: any, res: any, next: any) => {
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+  } else if (err) {
+    return res.status(500).json({ error: 'Internal upload error' });
+  }
+  next();
+};
+
+app.post('/api/upload', requireAuth(), writeLimiter, upload.single('file'), handleUploadError, async (req: any, res: any) => {
+  try {
+    const user = await syncUser(req);
+    if (!user) return res.status(401).json({ error: 'User Not Authenticated' });
+
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    if (!s3Config.credentials.accessKeyId || !s3Config.credentials.secretAccessKey) {
+      console.error("Missing R2 Credentials in environment.");
+      return res.status(500).json({ error: 'Server misconfigured: Missing Cloudflare R2 Credentials in backend .env' });
+    }
+
+    const ext = req.file.originalname.split('.').pop();
+    const key = `${crypto.randomBytes(16).toString('hex')}.${ext}`;
+
+    await s3.send(new PutObjectCommand({
+      Bucket: 'technical',
+      Key: key,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+    }));
+
+    return res.status(200).json({ url: `${process.env.R2_PUBLIC_URL}/${key}` });
+  } catch (err: any) {
+    if (err.name === 'CredentialsProviderError' || err.message?.includes('credential')) {
+      console.error('Invalid R2 SDK Credentials');
+      return res.status(500).json({ error: 'Server misconfigured: Invalid R2 SDK Credentials' });
+    }
+    console.error('Upload error:', err);
+    return res.status(500).json({ error: 'Upload failed: Cloudflare R2 rejected request.' });
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Public route - no auth required
-app.get('/api/blogs', async (req, res:any) => {
+app.get('/api/blogs', async (req, res: any) => {
   try {
     const cacheKey = 'blogs:all';
     const cachedBlogs = await redisClient.get(cacheKey);
@@ -344,15 +355,15 @@ app.get('/api/user/blogs', requireAuth(), async (req, res: any) => {
     if (!user) {
       return res.status(401).json({ error: "User Not Authenticated" });
     }
-    
+
     const cacheKey = getCacheKey(user.id, 'all');
     const cachedBlogs = await redisClient.get(cacheKey);
-    
+
     if (cachedBlogs) {
       // console.log('Serving user blogs from cache');
       return res.json({ blogs: JSON.parse(cachedBlogs) });
     }
-    
+
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
       orderBy: [
@@ -368,7 +379,7 @@ app.get('/api/user/blogs', requireAuth(), async (req, res: any) => {
         updatedAt: true,
       }
     });
-    
+
     await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));
     // console.log('Serving user blogs from DB and caching');
     return res.json({ blogs });
@@ -394,9 +405,9 @@ app.get('/api/user/blogs/published', requireAuth(), async (req, res: any) => {
     }
 
     const blogs = await prisma.blog.findMany({
-      where: { 
+      where: {
         authorId: user.id,
-        published: true 
+        published: true
       },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -433,9 +444,9 @@ app.get('/api/user/blogs/drafts', requireAuth(), async (req, res: any) => {
     }
 
     const blogs = await prisma.blog.findMany({
-      where: { 
+      where: {
         authorId: user.id,
-        published: false 
+        published: false
       },
       orderBy: { updatedAt: 'desc' },
       select: {
@@ -467,9 +478,9 @@ app.delete('/api/blogs/:id', requireAuth(), writeLimiter, async (req, res: any) 
 
     // First check if the blog exists and belongs to the user
     const blog = await prisma.blog.findFirst({
-      where: { 
+      where: {
         id,
-        authorId: user.id 
+        authorId: user.id
       }
     });
 
@@ -505,23 +516,23 @@ app.patch('/api/blogs/:id/publish', requireAuth(), writeLimiter, async (req, res
 
     // First check if the blog exists, belongs to the user, and is a draft
     const blog = await prisma.blog.findFirst({
-      where: { 
+      where: {
         id,
         authorId: user.id,
-        published: false 
+        published: false
       }
     });
 
     if (!blog) {
-      return res.status(404).json({ 
-        error: 'Draft blog not found or you do not have permission to publish it' 
+      return res.status(404).json({
+        error: 'Draft blog not found or you do not have permission to publish it'
       });
     }
 
     // Update the blog to published
     const updatedBlog = await prisma.blog.update({
       where: { id },
-      data: { 
+      data: {
         published: true,
         updatedAt: new Date()
       },
@@ -644,9 +655,9 @@ app.put('/api/blogs/:id', requireAuth(), async (req, res: any) => {
 
     // First check if the blog exists and belongs to the user
     const existingBlog = await prisma.blog.findFirst({
-      where: { 
+      where: {
         id,
-        authorId: user.id 
+        authorId: user.id
       }
     });
 
@@ -693,6 +704,148 @@ app.put('/api/blogs/:id', requireAuth(), async (req, res: any) => {
 });
 
 // LEGACY ROUTES (Keep for backward compatibility)
+
+// POST /api/upload - Upload Image to Cloudflare R2
+app.post('/api/upload', requireAuth(), writeLimiter, upload.single('file'), async (req, res: any) => {
+  try {
+    const user = await syncUser(req);
+    if (!user) return res.status(401).json({ error: "User Not Authenticated" });
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileExtension = req.file.originalname.split('.').pop();
+    const uniqueFilename = `${crypto.randomBytes(16).toString('hex')}.${fileExtension}`;
+    const contentType = req.file.mimetype;
+
+    const command = new PutObjectCommand({
+      Bucket: 'technical',
+      Key: uniqueFilename,
+      Body: req.file.buffer,
+      ContentType: contentType,
+    });
+
+    await s3.send(command);
+
+    const publicUrl = `${process.env.R2_PUBLIC_URL}/${uniqueFilename}`;
+
+    return res.status(200).json({ url: publicUrl });
+  } catch (error) {
+    console.error('S3 Upload Error:', error);
+    return res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
+// GET /api/blogs/:id/like-status - Check if user liked a blog
+app.get('/api/blogs/:id/like-status', requireAuth(), async (req, res: any) => {
+  try {
+    const id = req.params.id as string;
+    const user = await syncUser(req);
+    if (!user) return res.status(401).json({ error: "User Not Authenticated" });
+
+    // @ts-ignore
+    const like = await prisma.like.findUnique({
+      where: {
+        userId_blogId: {
+          userId: user.id,
+          blogId: id,
+        }
+      }
+    });
+
+    res.json({ isLiked: !!like });
+  } catch (error) {
+    console.error('Error fetching like status:', error);
+    res.status(500).json({ error: 'Failed to fetch like status' });
+  }
+});
+
+// POST /api/blogs/:id/like - Like a blog
+app.post('/api/blogs/:id/like', requireAuth(), authLimiter, async (req, res: any) => {
+  try {
+    const id = req.params.id as string;
+    const user = await syncUser(req);
+    if (!user) return res.status(401).json({ error: "User Not Authenticated" });
+
+    await prisma.$transaction(async (tx) => {
+      // @ts-ignore
+      const existingLike = await tx.like.findUnique({
+        where: { userId_blogId: { userId: user.id, blogId: id } }
+      });
+      if (existingLike) return;
+
+      // @ts-ignore
+      await tx.like.create({
+        data: { userId: user.id, blogId: id }
+      });
+
+      // @ts-ignore
+      const updatedBlog = await tx.blog.update({
+        where: { id },
+        data: { likes: { increment: 1 } },
+        select: { likes: true }
+      });
+
+      const payload = JSON.stringify({ type: 'likes_update', blogId: id, likes: updatedBlog.likes });
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(payload);
+        }
+      });
+    });
+
+    await redisClient.del(`blog:${id}`);
+
+    res.json({ message: 'Blog liked successfully' });
+  } catch (error) {
+    console.error('Error liking blog:', error);
+    res.status(500).json({ error: 'Failed to like blog' });
+  }
+});
+
+// DELETE /api/blogs/:id/like - Unlike a blog
+app.delete('/api/blogs/:id/like', requireAuth(), authLimiter, async (req, res: any) => {
+  try {
+    const id = req.params.id as string;
+    const user = await syncUser(req);
+    if (!user) return res.status(401).json({ error: "User Not Authenticated" });
+
+    await prisma.$transaction(async (tx) => {
+      // @ts-ignore
+      const existingLike = await tx.like.findUnique({
+        where: { userId_blogId: { userId: user.id, blogId: id } }
+      });
+      if (!existingLike) return;
+
+      // @ts-ignore
+      await tx.like.delete({
+        where: { userId_blogId: { userId: user.id, blogId: id } }
+      });
+
+      // @ts-ignore
+      const updatedBlog = await tx.blog.update({
+        where: { id },
+        data: { likes: { decrement: 1 } },
+        select: { likes: true }
+      });
+
+      const payload = JSON.stringify({ type: 'likes_update', blogId: id, likes: updatedBlog.likes });
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(payload);
+        }
+      });
+    });
+
+    await redisClient.del(`blog:${id}`);
+
+    res.json({ message: 'Blog unliked successfully' });
+  } catch (error) {
+    console.error('Error unliking blog:', error);
+    res.status(500).json({ error: 'Failed to unlike blog' });
+  }
+});
 
 app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
   try {
@@ -747,19 +900,19 @@ app.get('/api/user/blogs/all', requireAuth(), async (req, res: any) => {
     if (!user) {
       return res.status(401).json({ message: "User Not Authenticated" });
     }
-    
+
     const cacheKey = `user_blogs:${user.id}`;
     const cachedBlogs = await redisClient.get(cacheKey);
-    
+
     if (cachedBlogs) {
       return res.json({ blogs: JSON.parse(cachedBlogs) });
     }
-    
+
     const blogs = await prisma.blog.findMany({
       where: { authorId: user.id },
       orderBy: { updatedAt: 'desc' },
     });
-    
+
     await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));
     return res.json({ blogs });
   } catch (error) {
@@ -771,7 +924,7 @@ app.get('/api/user/blogs/all', requireAuth(), async (req, res: any) => {
 app.get('/api/blogs/:blogId', async (req, res: any) => {
   try {
     const { blogId } = req.params;
-    
+
     const cacheKey = `blog:${blogId}`;
     const cachedBlog = await redisClient.get(cacheKey);
 
@@ -795,7 +948,7 @@ app.get('/api/blogs/:blogId', async (req, res: any) => {
       return res.status(404).json({ error: 'Blog not found' });
     }
 
-    await redisClient.setEx(cacheKey, 600, JSON.stringify(blog)); 
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(blog));
     // console.log('Serving single blog from DB and caching in Redis');
     return res.json(blog);
   } catch (err) {
@@ -891,9 +1044,9 @@ app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
     }
 
     const existingBlog = await prisma.blog.findFirst({
-      where: { 
+      where: {
         id: blogId,
-        authorId: user.id 
+        authorId: user.id
       },
     });
 
@@ -931,9 +1084,9 @@ app.patch("/api/draft/publish/:id", requireAuth(), async (req, res: any) => {
     }
 
     const existingBlog = await prisma.blog.findFirst({
-      where: { 
+      where: {
         id: blogId,
-        authorId: user.id 
+        authorId: user.id
       },
     });
 

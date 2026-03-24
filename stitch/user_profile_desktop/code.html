@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Alex Drafter | DraftDock.app</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-container": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-background": "#191c1d",
+                        "surface-bright": "#f8f9fa",
+                        "inverse-primary": "#c6c6c6",
+                        "primary": "#000000",
+                        "on-surface": "#191c1d",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#e7e8e9",
+                        "on-secondary-fixed-variant": "#4d3800",
+                        "inverse-on-surface": "#f0f1f2",
+                        "tertiary-fixed": "#5e5e5e",
+                        "surface-container": "#edeeef",
+                        "tertiary": "#3b3b3b",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-variant": "#e1e3e4",
+                        "surface-container-low": "#f3f4f5",
+                        "primary-fixed-dim": "#474747",
+                        "surface": "#f8f9fa",
+                        "on-tertiary": "#e2e2e2",
+                        "error": "#ba1a1a",
+                        "primary-container": "#3b3b3b",
+                        "on-tertiary-fixed-variant": "#e2e2e2",
+                        "on-secondary-fixed": "#261a00",
+                        "on-primary": "#e2e2e2",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#ffffff",
+                        "on-secondary-container": "#261a00",
+                        "outline-variant": "#c6c6c6",
+                        "on-primary-fixed-variant": "#e2e2e2",
+                        "secondary": "#785900",
+                        "secondary-fixed-dim": "#d8a300",
+                        "on-tertiary-fixed": "#ffffff",
+                        "on-tertiary-container": "#ffffff",
+                        "secondary-container": "#ffce5d",
+                        "primary-fixed": "#5e5e5e",
+                        "surface-tint": "#5e5e5e",
+                        "secondary-fixed": "#fabd00",
+                        "outline": "#777777",
+                        "on-surface-variant": "#474747",
+                        "background": "#f8f9fa",
+                        "tertiary-container": "#747474",
+                        "inverse-surface": "#2e3132",
+                        "surface-dim": "#d9dadb",
+                        "tertiary-fixed-dim": "#474747",
+                        "on-error-container": "#410002"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-image: 
+                radial-gradient(circle at 1px 1px, #d9dadb 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-transparent">
+<div class="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-12">
+<a class="text-2xl font-bold tracking-tighter text-black dark:text-white font-headline" href="#">DraftDock.app</a>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-zinc-500 dark:text-zinc-400 font-medium font-headline tracking-tight hover:text-black dark:hover:text-white transition-colors" href="#">Explore</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-medium font-headline tracking-tight hover:text-black dark:hover:text-white transition-colors" href="#">Drafts</a>
+<a class="text-black dark:text-white font-bold border-b-2 border-black dark:border-white pb-1 font-headline tracking-tight" href="#">My Profile</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-surface-container-high px-4 py-2 rounded-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-zinc-400 text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-48 font-body" placeholder="Search insights..." type="text"/>
+</div>
+<button class="bg-primary text-on-primary-container px-6 py-2 rounded-md font-headline font-bold text-sm hover:opacity-80 transition-all active:scale-95">Write</button>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-24 max-w-7xl mx-auto px-6">
+<!-- Profile Header -->
+<header class="flex flex-col md:flex-row items-start gap-12 mb-20">
+<div class="relative group">
+<div class="w-40 h-40 bg-surface-container-highest rounded-xl overflow-hidden ring-4 ring-white shadow-sm">
+<img class="w-full h-full object-cover grayscale transition-all duration-500 group-hover:grayscale-0" data-alt="Close up portrait of a professional developer with a confident expression, soft studio lighting, high contrast monochromatic style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiSYzVla6UVUCFlDN9rTTOIzfg32_Ci0x6BOQorouc-7CJfAvVOFQxRXJI6swvtyVI38JFWjYZ1waTgupKPIA4wwyw0yM8dFEmFdXFmkK6110cyohxIcIIzUzG5U0OQypxWob9U1r7aC6qNEHxfuCwpYOVuYrfsfMmQ8E7R1svf5HXYNsroWEV3pRGtgeu5njBviy3mgd61GWmEdTZLDK6e29QFL1w4_kpN51iDurJGGv1NaGOnSe3j74JcElagHtKpFNOoTdfG-M"/>
+</div>
+</div>
+<div class="flex-1 space-y-6">
+<div>
+<h1 class="text-5xl font-extrabold tracking-tighter font-headline mb-2">Alex Drafter</h1>
+<p class="text-on-surface-variant max-w-xl text-lg leading-relaxed">
+                        Architecting the future of WASM and Rust. Writing about high-performance web systems and the intersection of developer productivity and editorial design.
+                    </p>
+</div>
+<div class="flex flex-wrap gap-8 text-sm font-medium">
+<div class="flex flex-col">
+<span class="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Published</span>
+<span class="text-xl font-headline font-bold">42</span>
+</div>
+<div class="flex flex-col">
+<span class="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Drafts</span>
+<span class="text-xl font-headline font-bold">18</span>
+</div>
+<div class="flex flex-col">
+<span class="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Reads</span>
+<span class="text-xl font-headline font-bold">12.4k</span>
+</div>
+<div class="flex flex-col">
+<span class="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Member Since</span>
+<span class="text-xl font-headline font-bold">Jan 2024</span>
+</div>
+</div>
+<div class="flex gap-4 pt-4">
+<button class="bg-primary text-on-primary-container px-6 py-2.5 rounded-md font-headline font-bold flex items-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-sm">edit</span>
+                        Edit Profile
+                    </button>
+<button class="bg-secondary text-on-secondary px-6 py-2.5 rounded-md font-headline font-bold flex items-center gap-2 hover:bg-secondary/90 transition-all">
+<span class="material-symbols-outlined text-sm">coffee</span>
+                        Support
+                    </button>
+</div>
+</div>
+</header>
+<div class="flex flex-col lg:flex-row gap-16">
+<!-- Content Area -->
+<div class="flex-1">
+<!-- Tabs -->
+<div class="flex gap-12 border-b border-surface-container-highest mb-12">
+<button class="pb-4 border-b-2 border-primary text-primary font-headline font-bold text-lg">My Blogs</button>
+<button class="pb-4 text-zinc-400 hover:text-primary transition-colors font-headline font-bold text-lg">My Drafts</button>
+</div>
+<!-- Blog List -->
+<div class="space-y-16">
+<!-- Post 1 -->
+<article class="group cursor-pointer">
+<div class="flex flex-col md:flex-row gap-8 items-start">
+<div class="w-full md:w-64 h-44 bg-surface-container-low overflow-hidden rounded-xl grayscale group-hover:grayscale-0 transition-all duration-700">
+<img class="w-full h-full object-cover" data-alt="Detailed view of computer code on a dark monitor, neon highlights, cinematic focus, high-tech workspace atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDq_2XE2liTIprCWmnc_8ApR100GK75zSnZcGOqrw6O-b3EDKO14kI5NXyUbTRnVokGwD9___ztey_3SXdq5rYuJt6sU1I2B6DAeTJurzYaayNANuUzAflBGBxTAkdKCypeffW8wLpOQ_oZ-7UbxzINp4faJhW5a3-QvwvpZ2M74re35WCjuY50Awk_ZnhsGsPztEpDw4h_irbNB42FE_aElZ4jhCdL3skNCSHCTO1u9Oi946SRvgGjTy0On1YXIJgqanQeGcCYKz4"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-3">
+<span class="bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded">RUST</span>
+<span class="text-zinc-400 text-xs font-label">May 12, 2024 • 8 min read</span>
+</div>
+<h3 class="text-3xl font-bold font-headline mb-3 group-hover:underline underline-offset-4 decoration-1">Memory Safety in WASM: A Deep Dive</h3>
+<p class="text-on-surface-variant line-clamp-2 text-md leading-relaxed mb-4">Exploring how WebAssembly handles linear memory and why it's a game changer for browser-side high-performance computing.</p>
+<div class="flex items-center text-primary font-bold font-headline gap-1 group-hover:gap-3 transition-all">
+                                    Read More <span class="material-symbols-outlined">arrow_forward</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Post 2 -->
+<article class="group cursor-pointer">
+<div class="flex flex-col md:flex-row gap-8 items-start">
+<div class="w-full md:w-64 h-44 bg-surface-container-low overflow-hidden rounded-xl grayscale group-hover:grayscale-0 transition-all duration-700">
+<img class="w-full h-full object-cover" data-alt="Modern workspace with a clean desk, mechanical keyboard, and a large monitor displaying terminal windows, monochromatic aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEF_91cvK7TGn2mE3XbwyESLy8Fqc7Eio4WEaZWz6-t3iWUJwFTcOllS_Xexa897-Itjkc6BCeB804c1wH_v_9zGuxhqW5VFvYdGdhg6AXvpluskuiHfSja_rSm9mpbODZNXoIVyE26Gppe6y6DDYSa7CgKvXOkYryF7k9lgsEiLRYNG7CYB18rS91Uet6JI9oKc5RuJ6DY8fODC1DjfrDHp_Balg523pWfKCYaCAUAVRzlA5konNvabPcS93giS1QZqgtqKGS4fo"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-3">
+<span class="bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded">ARCHITECTURE</span>
+<span class="text-zinc-400 text-xs font-label">Apr 28, 2024 • 12 min read</span>
+</div>
+<h3 class="text-3xl font-bold font-headline mb-3 group-hover:underline underline-offset-4 decoration-1">The Monolith vs. Micro-Frontends</h3>
+<p class="text-on-surface-variant line-clamp-2 text-md leading-relaxed mb-4">When scale becomes a bottleneck, architectural decisions define the future. Why we moved back to modular monoliths.</p>
+<div class="flex items-center text-primary font-bold font-headline gap-1 group-hover:gap-3 transition-all">
+                                    Read More <span class="material-symbols-outlined">arrow_forward</span>
+</div>
+</div>
+</div>
+</article>
+<!-- Post 3 -->
+<article class="group cursor-pointer">
+<div class="flex flex-col md:flex-row gap-8 items-start">
+<div class="w-full md:w-64 h-44 bg-surface-container-low overflow-hidden rounded-xl grayscale group-hover:grayscale-0 transition-all duration-700">
+<img class="w-full h-full object-cover" data-alt="Top down view of a laptop with code on screen next to a notebook and a cup of coffee, minimal lighting, clean composition" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD865iU1BM3px9luwrNLfq1sGs4Z9djY3ZN83iclJUfbK-MrMYJdG4JhLNlywO5izMiGBjBQohCwr4jf4Q3EqU08mC6IIlZMmlyxU49Y5MIJo0U8YcqV9jmm2EeKz8Y1fz6LwQtgsRlkxWk_TuiIazJXSoDBvHVsw4c13xtjVjMiJkzI57KN2oC7oywnZyvMyFxBZkBNFQAXFC4Bx4KWT4ENz1Kiix0SmMCw1B3WcEC5AlFWxWErTTxiMneUOAQ8tLS6GU5M9TTduk"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-3">
+<span class="bg-surface-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded">UX DESIGN</span>
+<span class="text-zinc-400 text-xs font-label">Mar 15, 2024 • 5 min read</span>
+</div>
+<h3 class="text-3xl font-bold font-headline mb-3 group-hover:underline underline-offset-4 decoration-1">Brutalism in Modern UI</h3>
+<p class="text-on-surface-variant line-clamp-2 text-md leading-relaxed mb-4">Why stripping away the 'SaaS polish' can lead to more intentional and high-performance user experiences.</p>
+<div class="flex items-center text-primary font-bold font-headline gap-1 group-hover:gap-3 transition-all">
+                                    Read More <span class="material-symbols-outlined">arrow_forward</span>
+</div>
+</div>
+</div>
+</article>
+</div>
+</div>
+<!-- Sidebar -->
+<aside class="w-full lg:w-80 space-y-12">
+<!-- Quick Insights -->
+<section class="bg-surface-container-low p-8 rounded-xl">
+<h4 class="font-headline font-bold text-xs uppercase tracking-widest mb-6">Quick Insights</h4>
+<div class="space-y-6">
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-4">
+<div>
+<p class="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Weekly Growth</p>
+<p class="text-2xl font-bold font-headline">+12.4%</p>
+</div>
+<span class="material-symbols-outlined text-green-600 mb-1">trending_up</span>
+</div>
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-4">
+<div>
+<p class="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Top Category</p>
+<p class="text-2xl font-bold font-headline">Rust/WASM</p>
+</div>
+<span class="material-symbols-outlined text-primary mb-1">terminal</span>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<p class="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Engagement</p>
+<p class="text-2xl font-bold font-headline">High</p>
+</div>
+<span class="material-symbols-outlined text-secondary mb-1">favorite</span>
+</div>
+</div>
+</section>
+<!-- Trending Tags -->
+<section>
+<h4 class="font-headline font-bold text-xs uppercase tracking-widest mb-6">Trending Tags</h4>
+<div class="flex flex-wrap gap-2">
+<a class="px-4 py-2 bg-white rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all" href="#">#webassembly</a>
+<a class="px-4 py-2 bg-white rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all" href="#">#rustlang</a>
+<a class="px-4 py-2 bg-white rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all" href="#">#productivity</a>
+<a class="px-4 py-2 bg-white rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all" href="#">#devops</a>
+<a class="px-4 py-2 bg-white rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all" href="#">#minimalism</a>
+<a class="px-4 py-2 bg-white rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all" href="#">#frontend</a>
+</div>
+</section>
+<!-- Community Card -->
+<section class="bg-secondary-container p-8 rounded-xl">
+<h4 class="font-headline font-bold text-secondary text-sm mb-2">Support Alex's Research</h4>
+<p class="text-on-secondary-container text-xs mb-6 font-medium leading-relaxed">Your contributions help fund deep-dive technical research and open-source documentation.</p>
+<button class="w-full bg-secondary text-on-secondary py-3 rounded-md font-headline font-bold text-sm hover:opacity-90 transition-all">
+                        Buy Me a Coffee
+                    </button>
+</section>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 py-12 max-w-7xl mx-auto">
+<div class="flex flex-col items-center md:items-start gap-4 mb-8 md:mb-0">
+<span class="font-space-grotesk font-bold text-2xl text-black dark:text-white tracking-tighter">DraftDock.app</span>
+<p class="text-zinc-500 dark:text-zinc-400 font-inter text-sm tracking-wide text-center md:text-left">© 2024 DraftDock.app. Built for high-performance developers.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-zinc-500 dark:text-zinc-400 font-inter text-sm tracking-wide hover:text-black dark:hover:text-white transition-opacity" href="#">Twitter</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-inter text-sm tracking-wide hover:text-black dark:hover:text-white transition-opacity" href="#">GitHub</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-inter text-sm tracking-wide hover:text-black dark:hover:text-white transition-opacity" href="#">Changelog</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-inter text-sm tracking-wide hover:text-black dark:hover:text-white transition-opacity" href="#">Privacy</a>
+<a class="text-zinc-500 dark:text-zinc-400 font-inter text-sm tracking-wide hover:text-black dark:hover:text-white transition-opacity" href="#">Terms</a>
+</div>
+</div>
+</footer>
+</body></html>

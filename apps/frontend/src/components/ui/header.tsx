@@ -1,108 +1,89 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Ship, Search, Plus, ArrowRight } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Notifications } from "../Notifications";
-import { ProfileButton } from "./profilebutton";
-
+import { useAuth } from "@clerk/clerk-react";
 
 interface HeaderProps {
-  searchTerm: string;
-  setSearchTerm: (value: string) => void;
+  searchTerm?: string;
+  setSearchTerm?: (value: string) => void;
 }
-
-interface ButtonProps {
-  children: React.ReactNode;
-  className?: string;
-  variant?: "default" | "ghost";
-  size?: "default" | "icon";
-  onClick?: () => void;
-}
-
-interface InputProps {
-  type: string;
-  placeholder: string;
-  value?: string;
-  className?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-const Button: React.FC<ButtonProps> = ({ children, className, variant = "default", size = "default", onClick }) => {
-  const baseClass = "inline-flex items-center justify-center rounded-md font-medium transition-colors";
-  const variantClasses = {
-    default: "bg-black text-white hover:bg-black/70",
-    ghost: "bg-transparent hover:bg-gray-100",
-  };
-  const sizeClasses = {
-    default: "h-9 px-4 py-2",
-    icon: "h-9 w-9",
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={`${baseClass} ${variantClasses[variant]} ${sizeClasses[size]} ${className || ""}`}
-    >
-      {children}
-    </button>
-  );
-};
-
-const Input: React.FC<InputProps> = ({ type, placeholder, className, value, onChange }) => {
-  return (
-    <input
-      type={type}
-      placeholder={placeholder}
-      className={`flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors ${className || ""}`}
-      value={value}
-      onChange={onChange}
-    />
-  );
-};
 
 const Header: React.FC<HeaderProps> = ({ searchTerm, setSearchTerm }) => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isSignedIn } = useAuth();
+
+  const isProfile = location.pathname === "/profile";
+  const isBlogs = location.pathname === "/blogs";
+
+  const handleLogoClick = () => {
+    if (isBlogs) {
+      navigate("/landing");
+    } else if (isSignedIn) {
+      navigate("/blogs");
+    } else {
+      navigate("/landing");
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-gray-50 p-4 md:px-6 flex items-center justify-between">
-      {/* Left: Logo */}
-      <div className="flex items-center gap-2 max-w-md flex-shrink-0">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/landing")}
-          className="flex items-center gap-2 px-2 pl-1 text-[20px] font-semibold bg-transparent text-black hover:bg-transparent hover:text-black focus:text-black active:text-black font-serif tracking-tight"
-        >
-          <Ship className="h-6 w-6 text-black" />
-          DraftDock
-        </Button>
-      </div>
-
-      {/* Center: Search */}
-      <div className="flex-1 max-w-lg mx-4 relative">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500 pointer-events-none" />
-        <Input
-          type="search"
-          placeholder="Search titles..."
-          className="pl-9 w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Right: Buttons & User */}
-      <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-        <div className="flex justify-end items-center mr-2">
-          <Notifications />
+    <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-transparent">
+      <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
+        <div className="flex items-center gap-12">
+          <button
+            onClick={handleLogoClick}
+            className="text-2xl font-bold tracking-tighter text-black dark:text-white font-headline"
+          >
+            DraftDock.app
+          </button>
+          <div className="hidden md:flex items-center gap-8">
+            <button
+              onClick={() => navigate("/blogs")}
+              className={`font-medium font-headline tracking-tight transition-colors ${
+                isBlogs
+                  ? "text-black dark:text-white font-bold border-b-2 border-black dark:border-white pb-1"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"
+              }`}
+            >
+              Drafts
+            </button>
+            <button
+              onClick={() => navigate("/profile")}
+              className={`font-medium font-headline tracking-tight transition-colors ${
+                isProfile
+                  ? "text-black dark:text-white font-bold border-b-2 border-black dark:border-white pb-1"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"
+              }`}
+            >
+              My Profile
+            </button>
+          </div>
         </div>
-        <ProfileButton variant="expandIcon" Icon={() => <Plus className="h-3 w-3 md:h-4 md:w-4" />} iconPlacement="right"
-        onClick={() => navigate("/create-blog")}>
-          Create
-        </ProfileButton>
-        <ProfileButton variant="expandIcon" Icon={() => <ArrowRight className="h-4 w-4" />} iconPlacement="right"
-        onClick={() => navigate("/profile")}>
-          Profile
-        </ProfileButton>
+        <div className="flex items-center gap-4">
+          {setSearchTerm && (
+            <div className="bg-surface-container-high px-4 py-2 rounded-lg hidden md:flex items-center gap-2">
+              <span className="material-symbols-outlined text-zinc-400 text-sm">search</span>
+              <input
+                className="bg-transparent border-none focus:ring-0 text-sm w-48 font-body outline-none"
+                placeholder="Search..."
+                type="text"
+                value={searchTerm || ""}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
+          <div className="flex items-center">
+             <Notifications />
+          </div>
+          <button
+            onClick={() => navigate("/create-blog")}
+            className="bg-primary text-on-primary px-6 py-2 rounded-md font-headline font-bold text-sm hover:opacity-80 transition-all active:scale-95"
+          >
+            Write
+          </button>
+        </div>
       </div>
-    </header>
+    </nav>
   );
 };
 

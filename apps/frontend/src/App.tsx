@@ -9,9 +9,11 @@ import HomeRedirector from "./components/HomeRedirector";
 import { MyStory } from "./components/MyStory";
 import { Contact } from "./components/Contact";
 import ProfileComponent from "./pages/Profile";
+import { BlogCacheProvider } from "./context/BlogCacheContext";
 
 const App: React.FC = () => {
   return (
+    <BlogCacheProvider>
     <Router>
       <Routes>
         <Route path="/" element={<HomeRedirector />} />
@@ -24,6 +26,7 @@ const App: React.FC = () => {
         <Route path="/profile" element={<ProfileComponent />} />
       </Routes>
     </Router>
+    </BlogCacheProvider>
   );
 };
 

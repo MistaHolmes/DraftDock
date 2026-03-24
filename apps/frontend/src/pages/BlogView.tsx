@@ -8,6 +8,7 @@ import { ChevronLeft, Heart, Share } from "lucide-react";
 import { ShareButton } from "@/components/ui/shareButton";
 import 'highlight.js/styles/atom-one-dark.css';
 import MDEditor from '@uiw/react-md-editor';
+import { useBlogCache } from "@/context/BlogCacheContext";
 
 interface Blog {
   id: string;
@@ -24,29 +25,56 @@ const BlogView = () => {
   const { blogId } = useParams();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [copied, setCopied] = useState(false);
+  const { getBlogDetail, setBlogDetail } = useBlogCache();
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
-  const [likeQueue, setLikeQueue] = useState(0); // Tracks pending likes (+ or -)
+  const [isProcessing, setIsProcessing] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const API_URL = import.meta.env.VITE_API_URL;
 
   // Fetch blog data
   useEffect(() => {
     if (!blogId) return;
+
+    const cachedBlog = getBlogDetail(blogId);
+    if (cachedBlog) {
+      setBlog(cachedBlog as unknown as Blog);
+      setLikes(cachedBlog.likes ?? 0);
+      return;
+    }
+
     const fetchBlog = async () => {
       try {
         const res = await fetch(`${API_URL}/api/blogs/${blogId}`);
         const data = await res.json();
         setBlog(data);
         setLikes(data.likes ?? 0);
+        setBlogDetail(blogId, data);
       } catch (err) {
         console.error("Failed to fetch blog", err);
       }
     };
     fetchBlog();
+  }, [blogId, API_URL, getBlogDetail, setBlogDetail]);
+
+  // Fetch like-status for current user
+  useEffect(() => {
+    if (!blogId) return;
+    const checkLikeStatus = async () => {
+      try {
+        const token = await (window as any).Clerk?.session?.getToken();
+        if (!token) return;
+        const res = await fetch(`${API_URL}/api/blogs/${blogId}/like-status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setLiked(data.isLiked);
+      } catch {}
+    };
+    checkLikeStatus();
   }, [blogId, API_URL]);
 
-  // WebSocket for real-time likes
+  // WebSocket for real-time like count updates from other users
   useEffect(() => {
     if (!blogId) return;
 
@@ -55,7 +83,6 @@ const BlogView = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      // Request current like count immediately on connect
       ws.send(`getLikes:${blogId}`);
     };
 
@@ -85,34 +112,37 @@ const BlogView = () => {
     }
   }, [copied]);
 
-  // Debounced queue for sending likes to WebSocket
-  useEffect(() => {
-    if (likeQueue === 0 || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || !blogId) return;
+  const handleLike = async () => {
+    if (isProcessing) return;
 
-    const timeoutPath = setTimeout(() => {
-      // Send the net result over WebSocket
-      if (likeQueue > 0) {
-        wsRef.current?.send(`like:${blogId}`);
-      } else if (likeQueue < 0) {
-        wsRef.current?.send(`unlike:${blogId}`);
-      }
-      // Reset the queue after sending
-      setLikeQueue(0);
-    }, 1000); // 1-second debounce delay
-
-    return () => clearTimeout(timeoutPath);
-  }, [likeQueue, blogId]);
-
-  const handleLike = () => {
-    // Optimistically update UI immediately
-    if (liked) {
-      setLikes((prev) => Math.max(0, prev - 1));
-      setLikeQueue((prev) => prev - 1); // Add "unlike" action to queue
-    } else {
-      setLikes((prev) => prev + 1);
-      setLikeQueue((prev) => prev + 1); // Add "like" action to queue
+    const token = await (window as any).Clerk?.session?.getToken();
+    if (!token) {
+      alert("Please log in to like this blog!");
+      return;
     }
-    setLiked((prev) => !prev);
+
+    setIsProcessing(true);
+    const wasLiked = liked;
+    const method = wasLiked ? "DELETE" : "POST";
+
+    // Optimistic UI update
+    setLiked(!wasLiked);
+    setLikes((prev) => wasLiked ? Math.max(0, prev - 1) : prev + 1);
+
+    try {
+      const res = await fetch(`${API_URL}/api/blogs/${blogId}/like`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Like action failed");
+    } catch (err) {
+      console.error(err);
+      // Revert optimistic UI on failure
+      setLiked(wasLiked);
+      setLikes((prev) => wasLiked ? prev + 1 : Math.max(0, prev - 1));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!blog) {
@@ -131,383 +161,139 @@ const BlogView = () => {
     day: "numeric",
   });
 
+  const imageMatch = blog?.content?.match(/!\[.*?\]\((.*?)\)/);
+  const coverImage = imageMatch ? imageMatch[1] : `https://picsum.photos/seed/${blog.id}/2000/800`;
+  const contentWithoutCover = imageMatch && blog.content ? blog.content.replace(imageMatch[0], '').replace(/^\s+/, '') : blog?.content;
+
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-gray-100/30">
+    <div className="flex-1 flex flex-col min-h-screen bg-surface">
       {/* Sticky Header */}
-      <div className="fixed top-0 left-0 w-full z-50 bg-gray-100/30">
+      <div className="fixed top-0 left-0 w-full z-50">
         <Header2 />
       </div>
 
       {/* Blog Content */}
-      <main className="max-w-4xl mx-auto px-6 pt-28 pb-16">
-        {/* Back Button */}
-        <div className="px-0 mb-6">
-          <BackButton variant="link" onClick={() => window.history.back()}>
-            <ChevronLeft
-              className="me-1 opacity-60"
-              size={16}
-              strokeWidth={2}
-              aria-hidden="true"
-            />
-            Back To Blogs
+      <main className="pt-28 max-w-[1440px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-[260px_1fr_300px] gap-12 w-full pb-16">
+        {/* Left Sidebar: Table of Contents */}
+        <aside className="h-screen sticky top-24 w-full hidden lg:block">
+          <BackButton variant="link" onClick={() => window.history.back()} className="mb-6 -ml-4 hover:bg-surface-container-low transition-colors px-4 py-2 rounded-md font-medium text-on-surface-variant">
+            <ChevronLeft className="me-1 opacity-60" size={16} /> Back To Blogs
           </BackButton>
-        </div>
-
-        <div className="px-6">
-          {/* Title */}
-          <h1 className="font-serif text-4xl sm:text-5xl font-bold leading-tight text-gray-900 mb-6">
-            {blog.title}
-          </h1>
-
-          {/* Meta Info */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm sm:text-base text-gray-700 font-sans mb-8">
-            {/* Left: Author and Date */}
-            <div className="flex items-center gap-2">
-              <span>By <span className="font-medium">{blog.author.email}</span></span>
-              <span className="text-gray-400">•</span>
-              <span>{formattedDate}</span>
+          <div className="flex flex-col gap-2 p-px">
+            <h3 className="text-lg font-bold text-on-surface font-headline mb-4">Navigation</h3>
+            <p className="text-xs text-on-surface-variant font-medium italic mb-2">Automated TOC</p>
+            <div className="flex items-center gap-2 text-sm text-outline font-medium">
+               <span className="material-symbols-outlined text-sm">segment</span>
+               Content mapped below
             </div>
+          </div>
+        </aside>
 
-            {/* Right: Like and Share Buttons */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+        {/* Middle Column: Main Content */}
+        <article className="bg-surface-container-lowest p-8 md:p-12 shadow-sm rounded-xl outline outline-variant/20">
+          <header className="mb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs font-bold tracking-widest uppercase text-outline">Technical Publication</span>
+              <span className="h-1 w-1 bg-outline-variant rounded-full"></span>
+              <span className="text-xs font-medium text-outline">{formattedDate}</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-black font-headline tracking-tighter leading-tight text-primary mb-6">
+              {blog.title}
+            </h1>
+          </header>
+
+          <img 
+            className="w-full aspect-[21/9] object-cover rounded-xl mb-12 shadow-sm border border-outline-variant/30" 
+            src={coverImage}
+            alt="Blog Cover Hero" 
+          />
+
+          <div data-color-mode="light" className="w-full blueprint-prose">
+            <MDEditor.Markdown 
+              source={contentWithoutCover} 
+              className="wmde-markdown max-w-none !bg-transparent !text-on-surface"
+              style={{ backgroundColor: 'transparent' }}
+            />
+          </div>
+        </article>
+
+        {/* Right Column: Meta & Actions */}
+        <aside className="space-y-8">
+          {/* Author Card */}
+          <div className="bg-surface-container-low p-6 rounded-xl border border-transparent hover:border-outline-variant transition-all">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest flex items-center justify-center">
+                 <span className="material-symbols-outlined text-outline">person</span>
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-on-surface">{blog.author.email.split('@')[0]}</h4>
+                <p className="text-xs text-on-surface-variant">Author</p>
+              </div>
+            </div>
+            <button className="w-full py-2 bg-primary text-on-primary text-xs font-bold rounded-md hover:bg-primary-container transition-all active:scale-95">Follow Updates</button>
+          </div>
+
+          {/* Engagement Actions: Likes & Share */}
+          <div className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/50 flex flex-col gap-4 shadow-sm">
+            <h4 className="font-bold text-sm tracking-tight mb-2 text-on-surface">Engagement</h4>
+            <div className="flex items-center justify-between">
                 <button
                   id={`like-btn-${blog.id}`}
                   onClick={handleLike}
-                  aria-pressed={liked}
-                  aria-label={liked ? "Unlike this post" : "Like this post"}
                   className={`
-                    group flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-medium text-sm
-                    transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-400
+                    group flex items-center gap-2 px-4 py-2 rounded-full border font-medium text-sm
+                    transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary
                     ${liked
-                      ? "bg-rose-50 border-rose-300 text-rose-600 shadow-sm"
-                      : "bg-white border-gray-300 text-gray-600 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50"
+                      ? "bg-primary border-primary text-on-primary shadow-sm"
+                      : "bg-surface border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary"
                     }
                   `}
                 >
                   <Heart
-                    size={16}
+                    size={18}
                     strokeWidth={2}
-                    className={`transition-all duration-200 ${liked ? "fill-rose-500 text-rose-500 scale-110" : "group-hover:scale-110"}`}
+                    className={`transition-all duration-200 ${liked ? "fill-on-primary text-on-primary scale-110" : "group-hover:scale-110"}`}
                   />
-                  <span className="tabular-nums">{likes}</span>
-                  <span className="sr-only">{liked ? "Unlike" : "Like"}</span>
+                  <span className="tabular-nums font-bold">{likes}</span>
                 </button>
-              </div>
 
-              <ShareButton
-                variant="link"
-                className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors px-3 py-1.5 border border-transparent rounded-full hover:bg-gray-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const postUrl = `${window.location.origin}/blog/${blog.id}`;
-                  navigator.clipboard
-                    .writeText(postUrl)
-                    .then(() => setCopied(true))
-                    .catch(() => alert("Failed to copy the link."));
-                }}
-              >
-                <Share
-                  className="opacity-60"
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
-                <span>{copied ? "Copied!" : "Share"}</span>
-              </ShareButton>
+                <ShareButton
+                  variant="outline"
+                  className="flex items-center gap-2 text-on-surface-variant hover:text-primary border border-outline-variant hover:border-primary transition-colors px-4 py-2 rounded-full bg-surface"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const postUrl = `${window.location.origin}/blog/${blog.id}`;
+                    navigator.clipboard
+                      .writeText(postUrl)
+                      .then(() => setCopied(true))
+                      .catch(() => alert("Failed to copy the link."));
+                  }}
+                >
+                  <Share className="opacity-80" size={16} strokeWidth={2} />
+                  <span className="font-medium text-sm">{copied ? "Copied!" : "Share"}</span>
+                </ShareButton>
             </div>
           </div>
 
-          <hr className="border-gray-300 mb-10" />
-
-          {/* Blog Content - Now renders HTML with proper styling */}
-          <div data-color-mode="light" className="blog-content w-full">
-            <MDEditor.Markdown 
-              source={blog.content} 
-              className="prose prose-lg max-w-none !bg-transparent !text-gray-800"
-              style={{ backgroundColor: 'transparent' }}
-            />
+          {/* Support Action */}
+          <div className="bg-secondary p-6 rounded-xl flex flex-col gap-4 shadow-md mt-8">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-secondary-container">coffee</span>
+              <h4 className="font-bold text-sm text-on-secondary">Support the Writer</h4>
+            </div>
+            <p className="text-xs text-on-secondary/90 leading-relaxed font-medium">If you found this technical guide useful, consider supporting future deep-dives.</p>
+            <a href="https://buymeacoffee.com/abhash" target="_blank" rel="noopener noreferrer" className="w-full py-2.5 bg-secondary-container text-on-secondary-container text-sm font-black rounded-md hover:bg-secondary-fixed hover:text-on-secondary-fixed transition-all flex items-center justify-center gap-2 mt-2">
+                Buy Me a Coffee
+            </a>
           </div>
-
-          {/* ────────────────────────────────────────────────────── */}
-        </div>
+        </aside>
       </main>
 
       {/* Footer */}
-      <div className="bg-gray-100/30 mt-auto">
+      <div className="mt-auto border-t border-outline-variant/30">
         <Footer />
       </div>
-
-      {/* Enhanced custom styles for blog content */}
-      <style>{`
-        .blog-content {
-          font-family: Georgia, 'Times New Roman', serif;
-          font-size: 1.125rem;
-          line-height: 1.8;
-          color: #1f2937;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-        
-        .blog-content p {
-          margin-bottom: 1.5rem;
-          line-height: 1.8;
-        }
-        
-        .blog-content h1 {
-          font-size: 2.5rem;
-          font-weight: 700;
-          margin: 2rem 0 1.5rem 0;
-          line-height: 1.2;
-          color: #111827;
-          font-family: Georgia, serif;
-        }
-        
-        .blog-content h2 {
-          font-size: 2rem;
-          font-weight: 600;
-          margin: 1.75rem 0 1rem 0;
-          line-height: 1.3;
-          color: #111827;
-          font-family: Georgia, serif;
-        }
-        
-        .blog-content h3 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin: 1.5rem 0 0.75rem 0;
-          line-height: 1.4;
-          color: #111827;
-          font-family: Georgia, serif;
-        }
-        
-        .blog-content h4 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          margin: 1.25rem 0 0.5rem 0;
-          line-height: 1.4;
-          color: #111827;
-        }
-        
-        .blog-content h5, .blog-content h6 {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin: 1rem 0 0.5rem 0;
-          line-height: 1.4;
-          color: #111827;
-        }
-        
-        .blog-content strong, .blog-content b {
-          font-weight: 700;
-          color: #111827;
-        }
-        
-        .blog-content em, .blog-content i {
-          font-style: italic;
-        }
-        
-        .blog-content u {
-          text-decoration: underline;
-          text-decoration-thickness: 1px;
-          text-underline-offset: 2px;
-        }
-        
-        .blog-content strike, .blog-content s {
-          text-decoration: line-through;
-          text-decoration-thickness: 1px;
-        }
-        
-        .blog-content pre {
-          background-color: #1e1e1e;
-          color: #ffffff;
-          padding: 1.5rem;
-          border-radius: 0.5rem;
-          margin: 2rem 0;
-          overflow-x: auto;
-          font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
-          font-size: 0.875rem;
-          line-height: 1.6;
-          border: 1px solid #374151;
-        }
-        
-        .blog-content code {
-          background-color: #f3f4f6;
-          color: #1f2937;
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.25rem;
-          font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
-          font-size: 0.9em;
-          border: 1px solid #e5e7eb;
-        }
-        
-        .blog-content pre code {
-          background-color: transparent;
-          color: inherit;
-          padding: 0;
-          border: none;
-          border-radius: 0;
-        }
-        
-        .blog-content blockquote {
-          border-left: 4px solid #3b82f6;
-          padding-left: 1.5rem;
-          margin: 2rem 0;
-          font-style: italic;
-          color: #4b5563;
-          background-color: #f8fafc;
-          padding: 1rem 1.5rem;
-          border-radius: 0 0.375rem 0.375rem 0;
-        }
-        
-        .blog-content ul {
-          list-style-type: disc;
-          margin-left: 2rem;
-          margin-bottom: 1.5rem;
-          padding-left: 0;
-        }
-        
-        .blog-content ol {
-          list-style-type: decimal;
-          margin-left: 2rem;
-          margin-bottom: 1.5rem;
-          padding-left: 0;
-        }
-        
-        .blog-content li {
-          margin-bottom: 0.5rem;
-          line-height: 1.7;
-          padding-left: 0.5rem;
-        }
-        
-        .blog-content li > ul,
-        .blog-content li > ol {
-          margin-top: 0.5rem;
-          margin-bottom: 0.5rem;
-        }
-        
-        .blog-content a {
-          color: #3b82f6;
-          text-decoration: underline;
-          text-decoration-thickness: 1px;
-          text-underline-offset: 2px;
-          transition: color 0.2s ease;
-        }
-        
-        .blog-content a:hover {
-          color: #1d4ed8;
-          text-decoration-thickness: 2px;
-        }
-        
-        /* Handle custom font sizes from rich text editor */
-        .blog-content [style*="font-size: 12px"] {
-          font-size: 0.75rem !important;
-          line-height: 1.6;
-        }
-        
-        .blog-content [style*="font-size: 14px"] {
-          font-size: 0.875rem !important;
-          line-height: 1.6;
-        }
-        
-        .blog-content [style*="font-size: 16px"] {
-          font-size: 1rem !important;
-          line-height: 1.7;
-        }
-        
-        .blog-content [style*="font-size: 18px"] {
-          font-size: 1.125rem !important;
-          line-height: 1.7;
-        }
-        
-        .blog-content [style*="font-size: 24px"] {
-          font-size: 1.5rem !important;
-          line-height: 1.5;
-        }
-        
-        .blog-content [style*="font-size: 36px"] {
-          font-size: 2.25rem !important;
-          line-height: 1.3;
-        }
-        
-        /* Handle custom font families */
-        .blog-content [style*="font-family"] {
-          line-height: inherit;
-        }
-        
-        /* Handle custom colors */
-        .blog-content [style*="color"] {
-          /* Colors are preserved from inline styles */
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 640px) {
-          .blog-content {
-            font-size: 1rem;
-            line-height: 1.7;
-          }
-          
-          .blog-content h1 {
-            font-size: 2rem;
-          }
-          
-          .blog-content h2 {
-            font-size: 1.75rem;
-          }
-          
-          .blog-content h3 {
-            font-size: 1.375rem;
-          }
-          
-          .blog-content pre {
-            padding: 1rem;
-            margin: 1.5rem 0;
-            font-size: 0.8rem;
-          }
-          
-          .blog-content ul, .blog-content ol {
-            margin-left: 1.5rem;
-          }
-        }
-        
-        /* Preserve spacing and formatting */
-        .blog-content br {
-          margin-bottom: 0.5rem;
-        }
-        
-        .blog-content hr {
-          border: none;
-          border-top: 1px solid #e5e7eb;
-          margin: 2rem 0;
-        }
-        
-        /* Table styling if tables are used */
-        .blog-content table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1.5rem 0;
-        }
-        
-        .blog-content th, .blog-content td {
-          border: 1px solid #e5e7eb;
-          padding: 0.75rem;
-          text-align: left;
-        }
-        
-        .blog-content th {
-          background-color: #f9fafb;
-          font-weight: 600;
-        }
-        
-        /* Image styling */
-        .blog-content img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 0.5rem;
-          margin: 1.5rem 0;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-      `}</style>
     </div>
   );
 };

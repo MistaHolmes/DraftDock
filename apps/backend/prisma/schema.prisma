@@ -12,6 +12,7 @@ model User {
   email         String         @unique
   blogs         Blog[]
   notifications Notification[]
+  likes         Like[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -23,9 +24,21 @@ model Blog {
   published         Boolean    @default(false)
   authorId          String
   author            User       @relation(fields: [authorId], references: [id])
-  likes             Int      @default(0)
+  likes             Int        @default(0) // Fast aggregate cache maintained via transactions
+  likedBy           Like[]
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  blogId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, blogId]) // Enforce 1 Like per user
 }
 
 model Notification {
