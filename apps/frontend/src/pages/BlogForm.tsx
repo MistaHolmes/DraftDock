@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -14,7 +14,7 @@ export function BlogForm() {
   const { getToken } = useAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
   const { invalidate } = useBlogCache();
-  
+
   const authorName = isUserLoaded && user ? (user.firstName || user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || "Creator") : "Author";
   const authorImage = isUserLoaded && user ? user.imageUrl : "";
 
@@ -29,7 +29,6 @@ export function BlogForm() {
     server?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,7 +56,7 @@ export function BlogForm() {
         throw new Error(errData.error || 'Cover upload failed');
       }
       const data = await response.json();
-      
+
       setFormData(prev => ({
         ...prev,
         content: `![Hero Cover Image](${data.url})\n\n${prev.content}`
@@ -76,14 +75,6 @@ export function BlogForm() {
 
   const coverImageMatch = formData.content.match(/!\[Hero Cover Image\]\((.*?)\)/);
   const coverImageUrl = coverImageMatch ? coverImageMatch[1] : null;
-
-  // Trigger animation on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
     e.preventDefault();
@@ -148,13 +139,6 @@ export function BlogForm() {
     handleSubmit(e as unknown as React.FormEvent, true);
   };
 
-  // Animation styles
-  const getAnimationStyle = (delay: number) => ({
-    opacity: isLoaded ? 1 : 0,
-    transform: isLoaded ? 'translateY(0)' : 'translateY(30px)',
-    transition: `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
-  });
-
   return (
     <div className="flex flex-col min-h-screen bg-surface font-body selection:bg-secondary-container">
       {/* TopAppBar */}
@@ -183,7 +167,7 @@ export function BlogForm() {
               <span className="material-symbols-outlined">edit_note</span>
               <span className="font-medium text-sm">Editor</span>
             </button>
-            <button 
+            <button
               onClick={() => navigate('/blogs?tab=published')}
               className="w-full flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg hover:translate-x-1 transition-transform"
             >
@@ -283,16 +267,16 @@ export function BlogForm() {
             {/* Cover Image Upload */}
             <div className="space-y-3">
               <label className="text-xs font-bold uppercase tracking-widest text-outline">Cover Image Mode</label>
-              
-              <input 
-                type="file" 
+
+              <input
+                type="file"
                 ref={fileInputRef}
-                className="hidden" 
+                className="hidden"
                 accept="image/*"
                 onChange={handleCoverUpload}
               />
-              
-              <button 
+
+              <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingCover}
                 className="relative aspect-video w-full bg-surface-container-lowest rounded-xl border-2 border-dashed border-outline-variant flex flex-col items-center justify-center hover:bg-surface-container-high transition-colors cursor-pointer group overflow-hidden"

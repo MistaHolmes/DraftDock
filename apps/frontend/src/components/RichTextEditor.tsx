@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import MDEditor, { commands } from '@uiw/react-md-editor';
+import MDEditor from '@uiw/react-md-editor';
 import { useAuth } from '@clerk/clerk-react';
 
 interface RichTextEditorProps {
@@ -40,7 +40,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         throw new Error(errData.error || 'Upload failed');
       }
       const data = await response.json();
-      
+
       const markdownImage = `\n![${file.name}](${data.url})\n`;
       onChange(value + markdownImage);
     } catch (error: any) {
@@ -52,8 +52,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   return (
-    <div 
-      className={`w-full bg-white rounded-lg overflow-hidden border ${error ? 'border-red-500' : 'border-gray-200'} ${className} relative`} 
+    <div
+      className={`w-full bg-white rounded-lg overflow-hidden border ${error ? 'border-red-500' : 'border-gray-200'} ${className} relative`}
       data-color-mode="light"
     >
       <MDEditor
@@ -110,7 +110,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           }
         `}
       </style>
-      
+
       {isUploading && (
         <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center gap-2">
