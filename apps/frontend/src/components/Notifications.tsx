@@ -39,7 +39,7 @@ export function Notifications() {
   const [wsState, setWsState] = useState<number>(WebSocket.CONNECTING);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const API_BASE = import.meta.env.VITE_API_URL;
+  const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, "");
 
   // Get user ID and establish WebSocket connection
   useEffect(() => {

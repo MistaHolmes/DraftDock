@@ -30,7 +30,7 @@ const BlogView = () => {
   const [liked, setLiked] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, "");
 
   // Fetch blog data
   useEffect(() => {
