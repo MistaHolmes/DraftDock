@@ -63,7 +63,8 @@ export function Notifications() {
         });
 
         if (userRes.ok) {
-          connectWebSocket(userId);
+          const userData = await userRes.json();
+          connectWebSocket(userData.id);
         } else {
           console.error("Failed to fetch user data");
           // Fallback to HTTP polling if auth fails
