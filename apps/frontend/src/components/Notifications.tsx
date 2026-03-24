@@ -80,7 +80,8 @@ export function Notifications() {
 
   const connectWebSocket = (userIdParam: string) => {
     try {
-      const ws = new WebSocket(API_BASE.replace(/^http/, 'ws'));
+      const wsUrl = import.meta.env.VITE_WS_URL || API_BASE.replace(/^http/, 'ws').replace(/3000/, '3001');
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       // Keep track of ping/pong for connection health
