@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import BlogSkeleton from "@/components/BlogSkeleton";
 import Header2 from "@/components/ui/header2";
 import { Footer } from "@/components/Footer";
 import { BackButton } from "@/components/ui/backButton";
-import { ChevronLeft, Share } from "lucide-react";
+import { ChevronLeft, Heart, Share } from "lucide-react";
 import { ShareButton } from "@/components/ui/shareButton";
+import 'highlight.js/styles/atom-one-dark.css';
+import MDEditor from '@uiw/react-md-editor';
 
 interface Blog {
   id: string;
   title: string;
   content: string;
   createdAt: string;
+  likes: number;
   author: {
     email: string;
   };
@@ -21,29 +24,96 @@ const BlogView = () => {
   const { blogId } = useParams();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [copied, setCopied] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [likeQueue, setLikeQueue] = useState(0); // Tracks pending likes (+ or -)
+  const wsRef = useRef<WebSocket | null>(null);
   const API_URL = import.meta.env.VITE_API_URL;
 
+  // Fetch blog data
   useEffect(() => {
+    if (!blogId) return;
     const fetchBlog = async () => {
       try {
         const res = await fetch(`${API_URL}/api/blogs/${blogId}`);
         const data = await res.json();
         setBlog(data);
+        setLikes(data.likes ?? 0);
       } catch (err) {
         console.error("Failed to fetch blog", err);
       }
     };
-
     fetchBlog();
   }, [blogId, API_URL]);
 
-  // Cleanup timer if component unmounts or copied changes
+  // WebSocket for real-time likes
+  useEffect(() => {
+    if (!blogId) return;
+
+    const wsUrl = API_URL.replace(/^http/, "ws");
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      // Request current like count immediately on connect
+      ws.send(`getLikes:${blogId}`);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "likes_update" && data.blogId === blogId) {
+          setLikes(data.likes);
+        }
+      } catch {
+        // ignore non-JSON messages (pong, etc.)
+      }
+    };
+
+    ws.onerror = (err) => console.warn("Likes WS error:", err);
+
+    return () => {
+      ws.close();
+    };
+  }, [blogId, API_URL]);
+
+  // Cleanup copy timer
   useEffect(() => {
     if (copied) {
       const timer = setTimeout(() => setCopied(false), 1000);
       return () => clearTimeout(timer);
     }
   }, [copied]);
+
+  // Debounced queue for sending likes to WebSocket
+  useEffect(() => {
+    if (likeQueue === 0 || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || !blogId) return;
+
+    const timeoutPath = setTimeout(() => {
+      // Send the net result over WebSocket
+      if (likeQueue > 0) {
+        wsRef.current?.send(`like:${blogId}`);
+      } else if (likeQueue < 0) {
+        wsRef.current?.send(`unlike:${blogId}`);
+      }
+      // Reset the queue after sending
+      setLikeQueue(0);
+    }, 1000); // 1-second debounce delay
+
+    return () => clearTimeout(timeoutPath);
+  }, [likeQueue, blogId]);
+
+  const handleLike = () => {
+    // Optimistically update UI immediately
+    if (liked) {
+      setLikes((prev) => Math.max(0, prev - 1));
+      setLikeQueue((prev) => prev - 1); // Add "unlike" action to queue
+    } else {
+      setLikes((prev) => prev + 1);
+      setLikeQueue((prev) => prev + 1); // Add "like" action to queue
+    }
+    setLiked((prev) => !prev);
+  };
 
   if (!blog) {
     return (
@@ -61,33 +131,6 @@ const BlogView = () => {
     day: "numeric",
   });
 
-  // Enhanced HTML sanitization function
-  const sanitizeHtml = (html: string) => {
-    // Create a temporary div to parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    
-    // Remove any potentially dangerous tags
-    const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form', 'input'];
-    dangerousTags.forEach(tag => {
-      const elements = tempDiv.querySelectorAll(tag);
-      elements.forEach(element => element.remove());
-    });
-    
-    // Remove any event handlers (onclick, onload, etc.)
-    const allElements = tempDiv.querySelectorAll('*');
-    allElements.forEach(element => {
-      const attributes = element.attributes;
-      for (let i = attributes.length - 1; i >= 0; i--) {
-        const attr = attributes[i];
-        if (attr.name.startsWith('on')) {
-          element.removeAttribute(attr.name);
-        }
-      }
-    });
-    
-    return tempDiv.innerHTML;
-  };
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-gray-100/30">
@@ -126,36 +169,68 @@ const BlogView = () => {
               <span>{formattedDate}</span>
             </div>
 
-            {/* Right: Share Button */}
-            <ShareButton
-              variant="link"
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                const postUrl = `${window.location.origin}/blog/${blog.id}`;
-                navigator.clipboard
-                  .writeText(postUrl)
-                  .then(() => setCopied(true))
-                  .catch(() => alert("Failed to copy the link."));
-              }}
-            >
-              <Share
-                className="opacity-60"
-                size={16}
-                strokeWidth={2}
-                aria-hidden="true"
-              />
-              <span>{copied ? "Copied!" : "Share"}</span>
-            </ShareButton>
+            {/* Right: Like and Share Buttons */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  id={`like-btn-${blog.id}`}
+                  onClick={handleLike}
+                  aria-pressed={liked}
+                  aria-label={liked ? "Unlike this post" : "Like this post"}
+                  className={`
+                    group flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-medium text-sm
+                    transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-400
+                    ${liked
+                      ? "bg-rose-50 border-rose-300 text-rose-600 shadow-sm"
+                      : "bg-white border-gray-300 text-gray-600 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50"
+                    }
+                  `}
+                >
+                  <Heart
+                    size={16}
+                    strokeWidth={2}
+                    className={`transition-all duration-200 ${liked ? "fill-rose-500 text-rose-500 scale-110" : "group-hover:scale-110"}`}
+                  />
+                  <span className="tabular-nums">{likes}</span>
+                  <span className="sr-only">{liked ? "Unlike" : "Like"}</span>
+                </button>
+              </div>
+
+              <ShareButton
+                variant="link"
+                className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors px-3 py-1.5 border border-transparent rounded-full hover:bg-gray-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const postUrl = `${window.location.origin}/blog/${blog.id}`;
+                  navigator.clipboard
+                    .writeText(postUrl)
+                    .then(() => setCopied(true))
+                    .catch(() => alert("Failed to copy the link."));
+                }}
+              >
+                <Share
+                  className="opacity-60"
+                  size={16}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                <span>{copied ? "Copied!" : "Share"}</span>
+              </ShareButton>
+            </div>
           </div>
 
           <hr className="border-gray-300 mb-10" />
 
           {/* Blog Content - Now renders HTML with proper styling */}
-          <article 
-            className="blog-content prose prose-lg max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(blog.content) }}
-          />
+          <div data-color-mode="light" className="blog-content w-full">
+            <MDEditor.Markdown 
+              source={blog.content} 
+              className="prose prose-lg max-w-none !bg-transparent !text-gray-800"
+              style={{ backgroundColor: 'transparent' }}
+            />
+          </div>
+
+          {/* ────────────────────────────────────────────────────── */}
         </div>
       </main>
 

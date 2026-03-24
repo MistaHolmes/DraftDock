@@ -7,6 +7,7 @@ import {
   CreditCard,
   TrendingUp,
   Gift,
+  Trash2,
 } from "lucide-react";
 import { NotiButton } from "@/components/ui/notiButton";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scrollarea";
 
 interface Notification {
-  id: number;
+  id: string;
   title: string;
   message: string;
   date: string;
@@ -35,6 +36,7 @@ export function Notifications() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [count, setCount] = useState(0);
+  const [wsState, setWsState] = useState<number>(WebSocket.CONNECTING);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const API_BASE = import.meta.env.VITE_API_URL;
@@ -102,6 +104,7 @@ export function Notifications() {
 
       ws.onopen = () => {
         console.log('WebSocket connected');
+        setWsState(WebSocket.OPEN);
         // Register user for notifications
         ws.send(`register:${userIdParam}`);
         // Start ping/pong mechanism
@@ -144,6 +147,7 @@ export function Notifications() {
 
       ws.onclose = (event) => {
         console.log('WebSocket disconnected:', event.code, event.reason);
+        setWsState(WebSocket.CLOSED);
         
         // Clean up intervals and timeouts
         if (pingInterval) {
@@ -242,6 +246,27 @@ export function Notifications() {
     }
   };
 
+  const deleteNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent clicking through to the notification itself (if it becomes clickable later)
+    try {
+      // Optimistically update UI
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      
+      const res = await fetch(`${API_BASE}/api/user/notifications/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to delete notification");
+      }
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+      // Revert optimism if needed (complex, so relying on WS update to fix it eventually is fine)
+      fetchNotifications();
+    }
+  };
+
   return (
     <div className="relative">
       <NotiButton
@@ -261,12 +286,21 @@ export function Notifications() {
 
       {isOpen && (
         <Card className="absolute right-0 mt-2 w-[90vw] max-w-md sm:w-96 z-50 shadow-lg">
-          <div className="relative flex items-center justify-between px-4 py-0">
-            <CardTitle className="text-sm font-medium px-3">
+          <div className="relative flex items-center justify-between px-4 py-0 border-b border-gray-100 mb-2 pb-2">
+            <CardTitle className="text-sm font-medium px-3 flex items-center gap-2 mt-3">
               Notifications
-              {wsRef.current?.readyState === WebSocket.OPEN && (
-                <span className="ml-2 inline-block w-2 h-2 bg-green-500 rounded-full" title="Live updates connected" />
-              )}
+              <span 
+                className={`inline-block w-2 h-2 rounded-full ${
+                  wsState === WebSocket.OPEN ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 
+                  wsState === WebSocket.CONNECTING ? 'bg-amber-400 animate-pulse' : 
+                  'bg-red-500'
+                }`} 
+                title={
+                  wsState === WebSocket.OPEN ? 'Live updates connected' : 
+                  wsState === WebSocket.CONNECTING ? 'Connecting...' : 
+                  'Disconnected - using HTTP polling'
+                } 
+              />
             </CardTitle>
             <NotiButton
               variant="ghost"
@@ -307,13 +341,24 @@ export function Notifications() {
                             <p className="text-sm text-muted-foreground">
                               {notification.message}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {notification.date}
                             </p>
                           </div>
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
-                          )}
+                          
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full" title="Unread" />
+                            )}
+                            <button
+                              onClick={(e) => deleteNotification(notification.id, e)}
+                              className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"
+                              title="Delete notification"
+                              aria-label="Delete notification"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

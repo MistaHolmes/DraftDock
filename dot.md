@@ -1,0 +1,2 @@
+- Dummy Terminal for Story
+- Make UI imporvements

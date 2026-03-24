@@ -100,3 +100,27 @@ Frontend is deployed at:
 
 MIT
 
+---
+
+## 🏃 Running Apps Individually (Without Turbo)
+
+If `npm run dev` fails in the root with `turbo: not found`, you can start each service individually in separate terminal windows:
+
+### 1. Start Redis
+```bash
+cd apps/backend
+docker-compose up -d redis
+```
+
+### 2. Start Backend API
+```bash
+cd apps/backend
+npm run dev
+```
+
+### 3. Start Frontend App
+```bash
+cd apps/frontend
+npm run dev
+```
+

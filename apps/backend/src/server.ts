@@ -5,17 +5,25 @@ import dotenv from 'dotenv';
 import { syncUser } from './sync';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import cors  from 'cors';
-import bodyParser from 'body-parser';
+import cors from 'cors';
 import { createClient } from 'redis';
 import { sendBlogPublishedEmail } from './email';
+import rateLimit from 'express-rate-limit';
+
+// MUST be first — loads REDIS_URL, DATABASE_URL etc. before anything reads process.env
+dotenv.config();
 
 const redisClient = createClient({
   url: process.env.REDIS_URL,
+  socket: {
+    reconnectStrategy: (retries) => Math.min(retries * 100, 3000),
+  },
 });
 
+redisClient.on('error', (err) => console.error('Redis client error:', err));
+redisClient.on('connect', () => console.log('Redis connected'));
+redisClient.on('reconnecting', () => console.log('Redis reconnecting...'));
 redisClient.connect().catch(console.error);
-dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
@@ -24,78 +32,80 @@ const server = http.createServer(app);
 
 app.use(clerkMiddleware());
 app.use(cors({
-  origin: true
-  // ['http://localhost:5173',
-  //   'http://35.202.48.53',
-  //   'http://34.66.221.1',
-  //   'https://frontend-1113988436.asia-south1.run.app',
-  // ]
-  ,
-  credentials: true
+  origin: true,
+  credentials: true,
 }));
-app.use(bodyParser.json());
+// Use only express.json() — bodyParser.json() is redundant (express wraps it internally)
 app.use(express.json());
+
+// ── Rate Limiting ────────────────────────────────────────────────────────────
+// Global limiter: 200 req / 15 min per IP (generous for public read traffic)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+// Strict limiter for write operations (create/update/delete/publish)
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many write requests, please slow down.' },
+});
+
+// Auth-related limiter (user sync)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests.' },
+});
+
+app.use(globalLimiter);
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Store user WebSocket connections with ping/pong tracking
 interface UserConnection {
   ws: WebSocket;
   isAlive: boolean;
-  pingInterval?: NodeJS.Timeout;
+  userId: string;
 }
 
 const userConnections = new Map<string, UserConnection>();
 
 const wss = new WebSocketServer({ server });
 
-const PING_INTERVAL = 60000; 
-const PONG_TIMEOUT = 10000;  
+const PING_INTERVAL = 30000;
+
+// Standard Heartbeat mechanism: periodically check all connections
+const interval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    const conn = Array.from(userConnections.values()).find(c => c.ws === ws);
+    if (conn) {
+      if (!conn.isAlive) {
+        console.log(`User ${conn.userId} failed to respond to heartbeat, terminating connection`);
+        userConnections.delete(conn.userId);
+        return ws.terminate();
+      }
+      conn.isAlive = false;
+    }
+  });
+}, PING_INTERVAL);
+
+wss.on('close', () => clearInterval(interval));
 
 wss.on('connection', (ws) => {
-  console.log('Client connected');
+  // console.log('Client connected');
   let userId: string | null = null;
-  let connectionData: UserConnection = { ws, isAlive: true };
+  let connectionData: UserConnection = { ws, isAlive: true, userId: '' };
 
-  // Set up ping/pong mechanism
-  const startPingInterval = () => {
-    connectionData.pingInterval = setInterval(() => {
-      if (!connectionData.isAlive) {
-        console.log(`User ${userId} failed to respond to ping, terminating connection`);
-        clearInterval(connectionData.pingInterval!);
-        ws.terminate();
-        return;
-      }
-
-      connectionData.isAlive = false;
-
-      const timeout = setTimeout(() => {
-        if (!connectionData.isAlive) {
-          console.log(`User did not respond to ping within timeout, terminating`);
-          clearInterval(connectionData.pingInterval!);
-          ws.terminate();
-        }
-      }, PONG_TIMEOUT);
-
-      ws.ping();
-
-      console.log(`Ping sent to user`);
-
-      ws.once('pong', () => {
-          clearTimeout(timeout);
-          connectionData.isAlive = true;
-      });
-    }, PING_INTERVAL);
-  };
-
-  // Handle pong responses
   ws.on('pong', () => {
-    console.log(`Pong received from user `);
-    connectionData.isAlive = true;
-  });
-
-  // Handle ping from client (respond with pong)
-  ws.on('ping', () => {
-    console.log(`Ping received from user, sending pong`);
-    ws.pong();
+    if (connectionData) connectionData.isAlive = true;
   });
 
   ws.on('message', async (message) => {
@@ -104,12 +114,10 @@ wss.on('connection', (ws) => {
     // Handle user registration for notifications
     if (data.startsWith('register:')) {
       userId = data.split(':')[1];
+      connectionData.userId = userId;
       connectionData.isAlive = true;
       userConnections.set(userId, connectionData);
-      console.log(`Connected users: ${userConnections.size}`);
-      
-      // Start ping/pong mechanism after registration
-      startPingInterval();
+      // console.log(`Connected users: ${userConnections.size}`);
       
       // Send initial notification data
       try {
@@ -126,44 +134,96 @@ wss.on('connection', (ws) => {
       }
     }
 
-    // Handle pong response as message (some clients send pong as message)
+    // Handle text-level pong from client (browser sends text 'pong' in response to text 'ping')
     if (data === 'pong') {
-      console.log(`Pong message received from user`);
       connectionData.isAlive = true;
       return;
     }
 
-    // Handle existing blog likes functionality
+    // Handle text-level ping from client — respond with text 'pong'
+    if (data === 'ping') {
+      connectionData.isAlive = true;
+      ws.send('pong');
+      return;
+    }
+
+    // Get likes for a blog
     if (data.startsWith('getLikes:')) {
       const blogId = data.split(':')[1];
       const blog = await prisma.blog.findUnique({
         where: { id: blogId },
         select: { likes: true },
       });
+      ws.send(JSON.stringify({ type: 'likes_update', blogId, likes: blog?.likes ?? 0 }));
+      return;
+    }
 
-      ws.send(JSON.stringify({ blogId, likes: blog?.likes ?? 0 }));
+    // Like a blog — increment and broadcast to all connected clients
+    if (data.startsWith('like:')) {
+      const blogId = data.split(':')[1];
+      try {
+        const updatedBlog = await prisma.blog.update({
+          where: { id: blogId },
+          data: { likes: { increment: 1 } },
+          select: { likes: true },
+        });
+        // Invalidate single-blog cache
+        await redisClient.del(`blog:${blogId}`);
+        // Broadcast updated likes to ALL connected clients
+        const payload = JSON.stringify({ type: 'likes_update', blogId, likes: updatedBlog.likes });
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(payload);
+          }
+        });
+      } catch (err) {
+        console.error('Error incrementing likes:', err);
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to like blog' }));
+      }
+      return;
+    }
+
+    // Unlike a blog — decrement (floor 0) and broadcast to all connected clients
+    if (data.startsWith('unlike:')) {
+      const blogId = data.split(':')[1];
+      try {
+        // Fetch current likes to prevent going below 0
+        const current = await prisma.blog.findUnique({
+          where: { id: blogId },
+          select: { likes: true },
+        });
+        const newLikes = Math.max(0, (current?.likes ?? 1) - 1);
+        const updatedBlog = await prisma.blog.update({
+          where: { id: blogId },
+          data: { likes: newLikes },
+          select: { likes: true },
+        });
+        await redisClient.del(`blog:${blogId}`);
+        const payload = JSON.stringify({ type: 'likes_update', blogId, likes: updatedBlog.likes });
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(payload);
+          }
+        });
+      } catch (err) {
+        console.error('Error decrementing likes:', err);
+        ws.send(JSON.stringify({ type: 'error', message: 'Failed to unlike blog' }));
+      }
+      return;
     }
   });
 
   ws.on('close', () => {
-    console.log('Client disconnected');
+    // console.log('Client disconnected');
     if (userId) {
-      const connection = userConnections.get(userId);
-      if (connection?.pingInterval) {
-        clearInterval(connection.pingInterval);
-      }
       userConnections.delete(userId);
-      console.log(`Connected users: ${userConnections.size}`);
+      // console.log(`Connected users: ${userConnections.size}`);
     }
   });
 
   ws.on('error', (error) => {
     console.error(`WebSocket error for user ${userId}:`, error);
     if (userId) {
-      const connection = userConnections.get(userId);
-      if (connection?.pingInterval) {
-        clearInterval(connection.pingInterval);
-      }
       userConnections.delete(userId);
     }
   });
@@ -179,9 +239,14 @@ const invalidateUserBlogsCache = async (userId: string) => {
     getCacheKey(userId, 'all'),
     getCacheKey(userId, 'published'),
     getCacheKey(userId, 'drafts'),
-    `user_blogs:${userId}` // Legacy cache key
+    `user_blogs:${userId}`, // Legacy cache key
   ];
   await Promise.all(keys.map(key => redisClient.del(key)));
+};
+
+// Safe public-blogs cache invalidation — avoids KEYS command (unsafe on Redis Cloud clusters)
+const invalidatePublicBlogsCache = async () => {
+  await redisClient.del('blogs:all');
 };
 
 // Helper function to get notifications for a user
@@ -202,8 +267,11 @@ async function getNotificationsForUser(userId: string) {
   return notifications;
 }
 
-// Helper function to broadcast notification to a user
-function broadcastNotificationUpdate(userId: string) {
+// Helper function to broadcast notification to a user (clears stale cache first)
+async function broadcastNotificationUpdate(userId: string) {
+  // Invalidate stale notification cache before fetching fresh data
+  await redisClient.del(`user_notifications:${userId}`);
+
   const connection = userConnections.get(userId);
   if (!connection || connection.ws.readyState !== WebSocket.OPEN) return;
 
@@ -212,13 +280,12 @@ function broadcastNotificationUpdate(userId: string) {
     orderBy: { createdAt: 'desc' },
   }).then(notifications => {
     const unreadCount = notifications.filter(n => !n.read).length;
-
     connection.ws.send(JSON.stringify({
-      type: "notification_update",
+      type: 'notification_update',
       notifications,
       unreadCount,
     }));
-  });
+  }).catch(err => console.error('broadcastNotificationUpdate error:', err));
 }
 
 // Public route - no auth required
@@ -228,7 +295,7 @@ app.get('/api/blogs', async (req, res:any) => {
     const cachedBlogs = await redisClient.get(cacheKey);
 
     if (cachedBlogs) {
-      console.log('Serving from Redis cache');
+      // console.log('Serving from Redis cache');
       return res.json(JSON.parse(cachedBlogs));
     }
 
@@ -247,7 +314,7 @@ app.get('/api/blogs', async (req, res:any) => {
     });
 
     await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));
-    console.log('Serving from DB and caching in Redis');
+    // console.log('Serving from DB and caching in Redis');
     return res.json(blogs);
   } catch (err) {
     console.error('Error fetching blogs:', err);
@@ -257,7 +324,7 @@ app.get('/api/blogs', async (req, res:any) => {
 
 // Protected routes
 
-app.get('/api/user', requireAuth(), async (req, res) => {
+app.get('/api/user', requireAuth(), authLimiter, async (req, res) => {
   try {
     const user = await syncUser(req);
     res.json(user);
@@ -271,7 +338,7 @@ app.get('/api/user', requireAuth(), async (req, res) => {
 
 // GET /api/user/blogs - Get all user's blogs (published + drafts)
 app.get('/api/user/blogs', requireAuth(), async (req, res: any) => {
-  console.log("🔥 GET /api/user/blogs HIT");
+  // console.log("🔥 GET /api/user/blogs HIT");
   try {
     const user = await syncUser(req);
     if (!user) {
@@ -282,7 +349,7 @@ app.get('/api/user/blogs', requireAuth(), async (req, res: any) => {
     const cachedBlogs = await redisClient.get(cacheKey);
     
     if (cachedBlogs) {
-      console.log('Serving user blogs from cache');
+      // console.log('Serving user blogs from cache');
       return res.json({ blogs: JSON.parse(cachedBlogs) });
     }
     
@@ -303,7 +370,7 @@ app.get('/api/user/blogs', requireAuth(), async (req, res: any) => {
     });
     
     await redisClient.setEx(cacheKey, 600, JSON.stringify(blogs));
-    console.log('Serving user blogs from DB and caching');
+    // console.log('Serving user blogs from DB and caching');
     return res.json({ blogs });
   } catch (error) {
     console.error('Error fetching user blogs:', error);
@@ -390,9 +457,9 @@ app.get('/api/user/blogs/drafts', requireAuth(), async (req, res: any) => {
 });
 
 // DELETE /api/blogs/:id - Delete a blog (NEW AXIOS ROUTE)
-app.delete('/api/blogs/:id', requireAuth(), async (req, res: any) => {
+app.delete('/api/blogs/:id', requireAuth(), writeLimiter, async (req, res: any) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const user = await syncUser(req);
     if (!user) {
       return res.status(401).json({ error: "User Not Authenticated" });
@@ -415,15 +482,10 @@ app.delete('/api/blogs/:id', requireAuth(), async (req, res: any) => {
       where: { id }
     });
 
-    // Invalidate cache
+    // Invalidate caches
     await invalidateUserBlogsCache(user.id);
     await redisClient.del(`blog:${id}`);
-    
-    // Invalidate public blogs cache
-    const keysToDelete = await redisClient.keys('blogs:*');
-    if (keysToDelete.length > 0) {
-      await Promise.all(keysToDelete.map(key => redisClient.del(key)));
-    }
+    await invalidatePublicBlogsCache();
 
     res.json({ message: 'Blog deleted successfully' });
   } catch (error) {
@@ -433,9 +495,9 @@ app.delete('/api/blogs/:id', requireAuth(), async (req, res: any) => {
 });
 
 // PATCH /api/blogs/:id/publish - Publish a draft blog (NEW AXIOS ROUTE)
-app.patch('/api/blogs/:id/publish', requireAuth(), async (req, res: any) => {
+app.patch('/api/blogs/:id/publish', requireAuth(), writeLimiter, async (req, res: any) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const user = await syncUser(req);
     if (!user) {
       return res.status(401).json({ error: "User Not Authenticated" });
@@ -485,30 +547,19 @@ app.patch('/api/blogs/:id/publish', requireAuth(), async (req, res: any) => {
     // Invalidate caches
     await invalidateUserBlogsCache(user.id);
     await redisClient.del(`blog:${id}`);
-    
-    // Invalidate public blogs cache
-    const keysToDelete = await redisClient.keys('blogs:*');
-    if (keysToDelete.length > 0) {
-      await Promise.all(keysToDelete.map(key => redisClient.del(key)));
-    }
+    await invalidatePublicBlogsCache();
 
-    // Update notifications cache
-    const cacheKey = `user_notifications:${user.id}`;
-    const notifications = await prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-    });
-    await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
-
-    // Broadcast notification update
+    // Broadcast notification update (also clears stale notification cache)
     await broadcastNotificationUpdate(user.id);
-    
-    // Send email
-    sendBlogPublishedEmail(user.email, blog.title);
 
-    res.json({ 
+    // Send email — non-blocking, won't crash this route
+    sendBlogPublishedEmail(user.email, blog.title).catch((err) =>
+      console.error('Email send failed (non-fatal):', err)
+    );
+
+    res.json({
       message: 'Blog published successfully',
-      blog: updatedBlog 
+      blog: updatedBlog,
     });
   } catch (error) {
     console.error('Error publishing blog:', error);
@@ -517,7 +568,7 @@ app.patch('/api/blogs/:id/publish', requireAuth(), async (req, res: any) => {
 });
 
 // POST /api/blogs - Create a new blog (NEW AXIOS ROUTE)
-app.post('/api/blogs', requireAuth(), async (req, res: any) => {
+app.post('/api/blogs', requireAuth(), writeLimiter, async (req, res: any) => {
   try {
     const { title, content, published = false } = req.body;
     const user = await syncUser(req);
@@ -547,8 +598,8 @@ app.post('/api/blogs', requireAuth(), async (req, res: any) => {
     });
 
     if (published) {
-      // Create notification
-      const notification = await prisma.notification.create({
+      // Create notification for immediate publish
+      await prisma.notification.create({
         data: {
           message: `Your blog "${title}" was successfully published.`,
           userId: user.id,
@@ -556,30 +607,24 @@ app.post('/api/blogs', requireAuth(), async (req, res: any) => {
         },
       });
 
-      // Update notifications cache
-      const cacheKey = `user_notifications:${user.id}`;
-      const notifications = await prisma.notification.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-      });
-      await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
-
+      // Broadcast notification update (clears stale cache internally)
       await broadcastNotificationUpdate(user.id);
-      sendBlogPublishedEmail(user.email, title);
+
+      // Send email — non-blocking
+      sendBlogPublishedEmail(user.email, title).catch((err) =>
+        console.error('Email send failed (non-fatal):', err)
+      );
 
       // Invalidate public blogs cache
-      const keysToDelete = await redisClient.keys('blogs:*');
-      if (keysToDelete.length > 0) {
-        await Promise.all(keysToDelete.map(key => redisClient.del(key)));
-      }
+      await invalidatePublicBlogsCache();
     }
 
     // Invalidate user blogs cache
     await invalidateUserBlogsCache(user.id);
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Blog created successfully',
-      blog 
+      blog,
     });
   } catch (error) {
     console.error('Error creating blog:', error);
@@ -590,7 +635,7 @@ app.post('/api/blogs', requireAuth(), async (req, res: any) => {
 // PUT /api/blogs/:id - Update a blog (NEW AXIOS ROUTE)
 app.put('/api/blogs/:id', requireAuth(), async (req, res: any) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { title, content, published } = req.body;
     const user = await syncUser(req);
     if (!user) {
@@ -631,18 +676,15 @@ app.put('/api/blogs/:id', requireAuth(), async (req, res: any) => {
     // Invalidate caches
     await invalidateUserBlogsCache(user.id);
     await redisClient.del(`blog:${id}`);
-    
+
     // If published status changed, invalidate public cache
     if (published !== undefined) {
-      const keysToDelete = await redisClient.keys('blogs:*');
-      if (keysToDelete.length > 0) {
-        await Promise.all(keysToDelete.map(key => redisClient.del(key)));
-      }
+      await invalidatePublicBlogsCache();
     }
 
-    res.json({ 
+    res.json({
       message: 'Blog updated successfully',
-      blog: updatedBlog 
+      blog: updatedBlog,
     });
   } catch (error) {
     console.error('Error updating blog:', error);
@@ -670,10 +712,8 @@ app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
       },
     });
 
-    let notifications = [];
-
     if (published) {
-      const notification = await prisma.notification.create({
+      await prisma.notification.create({
         data: {
           message: `Your blog "${title}" was successfully published.`,
           userId: user.id,
@@ -681,19 +721,13 @@ app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
         },
       });
 
-      // Invalidate notifications cache
-      const cacheKey = `user_notifications:${user.id}`;
-      notifications = await prisma.notification.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-      });
-      await redisClient.set(cacheKey, JSON.stringify(notifications), { EX: 60 * 5 });
-
       await broadcastNotificationUpdate(user.id);
-      sendBlogPublishedEmail(user.email, title);      
+      sendBlogPublishedEmail(user.email, title).catch((err) =>
+        console.error('Email send failed (non-fatal):', err)
+      );
     }
 
-    await redisClient.del('blogs:all');
+    await invalidatePublicBlogsCache();
     await invalidateUserBlogsCache(user.id);
 
     return res.status(201).json({ blog: newBlog });
@@ -707,7 +741,7 @@ app.post('/api/create-blog', requireAuth(), async (req, res: any) => {
 });
 
 app.get('/api/user/blogs/all', requireAuth(), async (req, res: any) => {
-  console.log("🔥 get /api/user/blogs/all HIT");
+  // console.log("🔥 get /api/user/blogs/all HIT");
   try {
     const user = await syncUser(req);
     if (!user) {
@@ -742,7 +776,7 @@ app.get('/api/blogs/:blogId', async (req, res: any) => {
     const cachedBlog = await redisClient.get(cacheKey);
 
     if (cachedBlog) {
-      console.log('Serving single blog from Redis cache');
+      // console.log('Serving single blog from Redis cache');
       return res.json(JSON.parse(cachedBlog));
     }
 
@@ -762,7 +796,7 @@ app.get('/api/blogs/:blogId', async (req, res: any) => {
     }
 
     await redisClient.setEx(cacheKey, 600, JSON.stringify(blog)); 
-    console.log('Serving single blog from DB and caching in Redis');
+    // console.log('Serving single blog from DB and caching in Redis');
     return res.json(blog);
   } catch (err) {
     console.error('Error fetching blog:', err);
@@ -779,7 +813,7 @@ app.get('/api/user/notifications', requireAuth(), async (req, res: any) => {
     }
 
     const notifications = await getNotificationsForUser(user.id);
-    console.log('Serving notifications from cache/DB');
+    // console.log('Serving notifications from cache/DB');
     return res.json({ notifications });
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -815,9 +849,40 @@ app.patch('/api/user/notifications/read-all', requireAuth(), async (req, res: an
   }
 });
 
+// DELETE /api/user/notifications/:id
+app.delete('/api/user/notifications/:id', requireAuth(), writeLimiter, async (req, res: any) => {
+  try {
+    const user = await syncUser(req);
+    const id = req.params.id as string;
+
+    if (!user) return res.status(401).json({ message: "User Not Authenticated" });
+
+    // Ensure the notification belongs to this user before deleting
+    const notif = await prisma.notification.findFirst({
+      where: { id: id, userId: user.id }
+    });
+
+    if (!notif) return res.status(404).json({ message: "Notification not found" });
+
+    await prisma.notification.delete({
+      where: { id: id }
+    });
+
+    // Invalidate cache and broadcast update
+    const cacheKey = `user_notifications:${user.id}`;
+    await redisClient.del(cacheKey);
+    await broadcastNotificationUpdate(user.id);
+
+    return res.json({ success: true, message: "Notification deleted" });
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    return res.status(500).json({ message: "Failed to delete notification" });
+  }
+});
+
 // LEGACY DELETE ROUTE (Keep for backward compatibility)
 app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
-  const blogId = req.params.id;
+  const blogId = req.params.id as string;
 
   try {
     const user = await syncUser(req);
@@ -843,16 +908,12 @@ app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
     try {
       await invalidateUserBlogsCache(user.id);
       await redisClient.del(`blog:${blogId}`);
-
-      const keysToDelete = await redisClient.keys('blogs:*');
-      if (keysToDelete.length > 0) {
-        await Promise.all(keysToDelete.map(key => redisClient.del(key)));
-      }
+      await invalidatePublicBlogsCache();
     } catch (cacheErr) {
-      console.warn("Redis cache invalidation failed:", cacheErr);
+      console.warn('Redis cache invalidation failed:', cacheErr);
     }
 
-    res.status(200).json({ message: "Blog deleted successfully" });
+    res.status(200).json({ message: 'Blog deleted successfully' });
   } catch (err) {
     console.error("Delete blog error:", err);
     res.status(500).json({ error: "Internal Server Error" });
@@ -861,7 +922,7 @@ app.delete("/api/blogs/delete/:id", requireAuth(), async (req, res: any) => {
 
 // LEGACY PUBLISH ROUTE (Keep for backward compatibility)
 app.patch("/api/draft/publish/:id", requireAuth(), async (req, res: any) => {
-  const blogId = req.params.id;
+  const blogId = req.params.id as string;
 
   try {
     const user = await syncUser(req);
@@ -888,16 +949,12 @@ app.patch("/api/draft/publish/:id", requireAuth(), async (req, res: any) => {
     try {
       await invalidateUserBlogsCache(user.id);
       await redisClient.del(`blog:${blogId}`);
-
-      const keysToDelete = await redisClient.keys('blogs:*');
-      if (keysToDelete.length > 0) {
-        await Promise.all(keysToDelete.map((key) => redisClient.del(key)));
-      }
+      await invalidatePublicBlogsCache();
     } catch (cacheErr) {
-      console.warn("Redis cache invalidation failed:", cacheErr);
+      console.warn('Redis cache invalidation failed:', cacheErr);
     }
 
-    res.status(200).json({ message: "Draft published successfully", blog: updatedBlog });
+    res.status(200).json({ message: 'Draft published successfully', blog: updatedBlog });
   } catch (err) {
     console.error("Publish draft error:", err);
     res.status(500).json({ error: "Internal Server Error" });

@@ -3,10 +3,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const sendBlogPublishedEmail = async (to: string, blogTitle: string) => {
-  console.log('EMAIL_USER:', process.env.EMAIL_USER);
-  console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Missing email credentials in environment variables');
+    console.warn('⚠️  Email not configured — skipping blog published email for:', to);
+    return;
   }
 
   const transporter = nodemailer.createTransport({
