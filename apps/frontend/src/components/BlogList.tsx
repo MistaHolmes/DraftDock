@@ -7,7 +7,7 @@ import { ShareButton } from "./ui/shareButton";
 import { useAuth } from "@clerk/clerk-react";
 
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, "");
-const WS_URL = import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, "ws").replace(/3000/, "3001");
+const WS_URL = import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, "ws");
 
 const BlogCardLikeButton = ({ blogId }: { blogId: string }) => {
   const { getToken, userId } = useAuth();

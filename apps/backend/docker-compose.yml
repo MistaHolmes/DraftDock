@@ -13,8 +13,7 @@ services:
       PORT: 3000
       WS_PORT: 3001
     ports:
-      - "3000:3000"   # HTTP / REST API
-      - "3001:3001"   # WebSocket
+      - "3000:3000"   # HTTP / REST API & WebSocket
     volumes:
       - ./logs:/app/logs
     healthcheck:

@@ -31,7 +31,6 @@ redisClient.connect().catch(console.error);
 const app = express();
 const prisma = new PrismaClient();
 const port = parseInt(process.env.PORT || '3000', 10);
-const wsPort = parseInt(process.env.WS_PORT || '3001', 10);
 const server = http.createServer(app);
 
 const s3Config = {
@@ -98,8 +97,8 @@ interface UserConnection {
 
 const userConnections = new Map<string, UserConnection>();
 
-// WebSocket server runs on its own dedicated port (WS_PORT / 3001)
-const wss = new WebSocketServer({ port: wsPort });
+// WebSocket uses the exact same HTTP server, inheriting its SSL termination proxy!
+const wss = new WebSocketServer({ server });
 
 const PING_INTERVAL = 30000;
 
@@ -1140,6 +1139,5 @@ app.get('/version', (_, res) => {
 });
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`HTTP server running at http://0.0.0.0:${port}`);
-  console.log(`WebSocket server running at ws://0.0.0.0:${wsPort}`);
+  console.log(`Server running (HTTP & WebSocket) on port ${port}`);
 });

@@ -78,7 +78,7 @@ const BlogView = () => {
   useEffect(() => {
     if (!blogId) return;
 
-    const wsUrl = import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, "ws").replace(/3000/, "3001");
+    const wsUrl = import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, "ws");
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
