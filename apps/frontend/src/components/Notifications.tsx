@@ -13,6 +13,7 @@ import { NotiButton } from "@/components/ui/notiButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scrollarea";
+import { useAuth } from "@clerk/clerk-react";
 
 interface Notification {
   id: string;
@@ -40,19 +41,29 @@ export function Notifications() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, "");
+  const { getToken, userId } = useAuth();
 
   // Get user ID and establish WebSocket connection
   useEffect(() => {
     const getUserAndConnect = async () => {
       try {
-        // Fetch user info to get user ID
+        if (!userId) return;
+        
+        const token = await getToken();
+        if (!token) {
+          fetchNotifications();
+          return;
+        }
+
         const userRes = await fetch(`${API_BASE}/api/user`, {
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
         });
 
         if (userRes.ok) {
-          const userData = await userRes.json();
-          connectWebSocket(userData.id);
+          connectWebSocket(userId);
         } else {
           console.error("Failed to fetch user data");
           // Fallback to HTTP polling if auth fails
@@ -182,8 +193,14 @@ export function Notifications() {
 
   const fetchNotifications = async () => {
     try {
+      const token = await getToken();
+      if (!token) return;
+
       const res = await fetch(`${API_BASE}/api/user/notifications`, {
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json"
+        }
       });
       if (!res.ok) throw new Error("Failed to fetch notifications");
       const data = await res.json();
@@ -203,11 +220,15 @@ export function Notifications() {
 
     if (newIsOpen && count > 0) {
       try {
+        const token = await getToken();
         // Mark all as read
         const patchRes = await fetch(`${API_BASE}/api/user/notifications/read-all`, {
             method: "PATCH",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json"
+            },
           }
         );
         
@@ -220,9 +241,13 @@ export function Notifications() {
         // If WebSocket is not connected, manually update the state
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {          
           // Also refetch to ensure consistency
+          const token = await getToken();
           const res = await fetch(`${API_BASE}/api/user/notifications`, {
             method: "GET",
-            credentials: "include",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json"
+            }
           });
           const data = await res.json();
 
@@ -245,9 +270,13 @@ export function Notifications() {
       // Optimistically update UI
       setNotifications(prev => prev.filter(n => n.id !== id));
       
+      const token = await getToken();
       const res = await fetch(`${API_BASE}/api/user/notifications/${id}`, {
         method: "DELETE",
-        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json"
+        }
       });
       
       if (!res.ok) {
