@@ -2,6 +2,7 @@ services:
   # Backend Application
   # Redis is now on Redis Cloud — REDIS_URL is passed via environment or .env
   backend:
+    build: .
     image: mistaholmes/draftdock-be-mar-21
     container_name: draftdock-backend
     restart: unless-stopped
