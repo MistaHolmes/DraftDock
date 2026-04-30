@@ -18,17 +18,22 @@
 
 1. [Overview](#overview)
 2. [Monorepo Structure](#monorepo-structure)
-3. [Features by App](#features-by-app)
+3. [Architecture](#architecture)
+4. [Features by App](#features-by-app)
    - [Frontend — Main Blogging App](#1-frontend--main-blogging-app-appsfrontend)
    - [Backend — REST & Real-time API](#2-backend--rest--real-time-api-appsbackend)
    - [DockStudio — AI Code IDE](#3-dockstudio--ai-in-browser-code-ide-appsdockstudio)
-   - [Admin Panel (Legacy)](#4-admin-panel-legacy-appsadmin)
-   - [Admin Panel (Next.js)](#5-admin-panel-nextjs-appsadmin-next)
-   - [Monitoring](#6-monitoring-appsmonitoring)
-   - [Shared Packages](#7-shared-packages)
-4. [Tech Stack](#tech-stack)
-5. [Getting Started](#getting-started)
-6. [Running Apps Individually](#running-apps-individually-without-turbo)
+   - [Monitoring](#4-monitoring-appsmonitoring)
+   - [Shared Packages](#5-shared-packages)
+5. [Tech Stack](#tech-stack)
+6. [Getting Started](#getting-started)
+   - [Prerequisites](#prerequisites)
+   - [Clone & Install](#1-clone--install)
+   - [Environment Variables](#2-environment-variables)
+   - [Database Setup](#3-database-setup)
+   - [Running All Apps (Turbo)](#4-run-all-apps-with-turbo)
+   - [Running Apps Individually](#5-run-apps-individually)
+   - [DockStudio Python API Setup](#6-dockstudio-python-api-setup)
 7. [Deployment](#deployment)
 
 ---
@@ -39,8 +44,7 @@ DraftDock is a production-grade blogging platform that combines several intercon
 
 - A **React + Vite** frontend for reading, writing, and discovering blogs
 - An **Express + TypeScript** backend with REST APIs, a WebSocket server, and a CRDTs-powered collaborative editing server
-- **DockStudio**, a Next.js AI-powered in-browser code IDE backed by WebContainers
-- A **Next.js Admin Panel** for platform moderation and analytics
+- **DockStudio**, a Next.js AI-powered in-browser code IDE backed by WebContainers and a Python FastAPI backend
 - A **self-hosted monitoring** service that watches endpoints, databases, and infrastructure
 
 ---
@@ -50,20 +54,67 @@ DraftDock is a production-grade blogging platform that combines several intercon
 ```
 DraftDock/
 ├── apps/
-│   ├── frontend/        # Main user-facing app (React + Vite)
-│   ├── backend/         # REST API + WebSocket + Collab server (Express)
-│   ├── dockstudio/      # AI code IDE (Next.js + WebContainers)
-│   ├── admin/           # Admin dashboard — legacy (Vanilla HTML/JS)
-│   ├── admin-next/      # Admin dashboard — current (Next.js)
-│   └── monitoring/      # Self-hosted health & alerting service
+│   ├── frontend/           # Main user-facing app (React + Vite)
+│   ├── backend/            # REST API + WebSocket + Collab server (Express + TS)
+│   ├── dockstudio/         # AI code IDE (Next.js + WebContainers)
+│   │   ├── src/            #   Next.js frontend (pages, components, hooks)
+│   │   └── api/            #   Python FastAPI backend (AI, projects, tasks)
+│   │       ├── main.py     #     FastAPI entry point
+│   │       ├── routers/    #     Route handlers (users, projects, tasks)
+│   │       ├── services/   #     AI service (Anthropic Claude)
+│   │       └── prisma/     #     Prisma schema (prisma-client-py)
+│   ├── deployment/         # Deployment configs (nginx, docker-compose, env)
+│   └── monitoring/         # Self-hosted health & alerting service
 ├── packages/
-│   ├── ui/              # Shared React component library
-│   ├── eslint-config/   # Shared ESLint configuration
-│   └── typescript-config/ # Shared TypeScript configuration
+│   ├── ui/                 # Shared React component library
+│   ├── eslint-config/      # Shared ESLint configuration
+│   └── typescript-config/  # Shared TypeScript configuration
 ├── turbo.json
-├── docker-compose.yml
-└── package.json
+├── docker-compose.yml      # Redis for local dev
+└── package.json            # Workspace root (npm workspaces + Turborepo)
 ```
+
+---
+
+## Architecture
+
+> **Key point:** DockStudio has its **own dedicated Python FastAPI backend** — it does NOT use the Node.js backend that powers the main blogging platform.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     DraftDock Monorepo                   │
+├────────────────────────┬────────────────────────────────┤
+│   Blogging Platform    │   DockStudio (AI Code IDE)     │
+│                        │                                │
+│  ┌──────────────────┐  │  ┌──────────────────────────┐  │
+│  │  apps/frontend   │  │  │  apps/dockstudio/src     │  │
+│  │  (React + Vite)  │  │  │  (Next.js 15)            │  │
+│  └───────┬──────────┘  │  └───────────┬──────────────┘  │
+│          │ REST/WS     │              │ REST (Bearer)   │
+│          ▼             │              ▼                 │
+│  ┌──────────────────┐  │  ┌──────────────────────────┐  │
+│  │  apps/backend    │  │  │  apps/dockstudio/api     │  │
+│  │  (Express + TS)  │  │  │  (Python FastAPI)        │  │
+│  │  Port 3000 REST  │  │  │  Port 8000               │  │
+│  │  Port 3001 WS    │  │  │  Anthropic Claude AI     │  │
+│  │  Port 3002 CRDT  │  │  │  prisma-client-py        │  │
+│  └───────┬──────────┘  │  └───────────┬──────────────┘  │
+│          │             │              │                 │
+│          ▼             │              ▼                 │
+│  ┌──────────────────┐  │  ┌──────────────────────────┐  │
+│  │  PostgreSQL      │  │  │  PostgreSQL (Neon)       │  │
+│  │  Redis           │  │  │                          │  │
+│  └──────────────────┘  │  └──────────────────────────┘  │
+└────────────────────────┴────────────────────────────────┘
+```
+
+**How DockStudio frontend → API works:**
+
+1. The Next.js frontend uses a `useApi()` hook (`src/lib/api.ts`) that reads `NEXT_PUBLIC_API_URL`
+2. All API calls go through `fetch()` with Clerk JWT Bearer tokens
+3. The Python FastAPI server verifies the JWT against Clerk's JWKS endpoint
+4. The API uses `prisma-client-py` (async) to interact with a PostgreSQL database on Neon
+5. AI features call the Anthropic Claude API to generate code plans and repair errors
 
 ---
 
@@ -88,7 +139,6 @@ The primary user-facing application built with **React**, **Vite**, **Tailwind C
 - **Draft / Publish toggle** — save as a private draft or publish immediately
 - **Scheduled publishing** — set a future date/time; a backend scheduler automatically publishes the post at the specified time
 - **Auto-save to localStorage** — content is periodically saved locally so no work is ever lost on accidental page close
-- **Edit mode** — opening an existing blog pre-fills all fields; changes overwrite the original post
 
 #### AI Writing Assistant
 A collapsible side panel that integrates directly with the editor, backed by the backend `/api/ai` routes:
@@ -96,91 +146,31 @@ A collapsible side panel that integrates directly with the editor, backed by the
 | Tab | What it does |
 |---|---|
 | **Title** | Generates multiple catchy title suggestions from a short description |
-| **Content** | Drafts full article content given a topic, tone (professional / casual / academic / creative), and length (short / medium / long) |
+| **Content** | Drafts full article content given a topic, tone, and length |
 | **Tags** | Auto-extracts relevant tags from the current article body |
 | **SEO** | Writes an optimised meta-description summary |
 
-One-click insertion — generated content or titles slot directly into the editor without copy-pasting.
-
-#### Readability Meter
-A live sidebar widget (debounced 1.5 s) that sends the current content to `/api/ai/readability` and returns:
-- A **Flesch Reading Ease score** (0–100)
-- Grade level and difficulty label (Easy / Moderate / Difficult)
-- Word count, sentence count, and average words per sentence
-- A colour-coded progress bar (green → amber → red)
-
 #### Real-time Collaborative Writing (`/collaborate`)
-Powered by **TipTap** (rich text editor) with a **Hocuspocus** CRDT server (Y.Doc) running on a dedicated port:
+Powered by **TipTap** (rich text editor) with a **Hocuspocus** CRDT server (Y.Doc):
 
 - **Start a session** — creates a draft blog and drops you into the live editor immediately
-- **Invite co-authors** — the session owner generates a shareable invite link; anyone with the link can join as a co-author
-- **Join via invite link** — `/collab/join/:token` resolves the token, validates it, then opens the shared editor
+- **Invite co-authors** — generates a shareable invite link; anyone with the link can join as a co-author
 - **Co-author presence bar** — shows live avatars of everyone currently editing the document
-- **Bi-directional sync** — title and body are separate Y.Doc channels so both update in real time across all connected clients
-- **Connection status indicator** — WiFi/WifiOff icon reflects the WebSocket health
+- **Bi-directional sync** — title and body are separate Y.Doc channels so both update in real time
 - **Publish from collab** — the session owner can publish the draft directly from inside the collaborative editor
-- **Session management** — the Collaborate landing page lists all your active draft sessions (owned) and sessions you've been invited to
 
 #### Social & Community Features
-- **Likes** — one-click like/unlike on any blog post, with optimistic UI updates
-- **Comments** — nested or flat comment threads on each article
-- **Bookmarks** — save articles for later reading; manage saved articles at `/bookmarks`
-- **Reading history** — the platform tracks articles you've read at `/reading-history`
-- **Follow / Unfollow** — follow authors to personalise your feed; manage followers and following lists from your profile
-- **Highlights** — text-selection highlights on a blog post that persist for the reader
+- **Likes**, **Comments**, **Bookmarks**, **Reading history**
+- **Follow / Unfollow** authors to personalise your feed
+- **Highlights** — text-selection highlights on blog posts that persist for the reader
 
-#### Leaderboard (`/leaderboard`)
-- Ranks all writers by **writer XP** and **follower count**
-- Filterable by period: **All time**, **Monthly**, **Weekly**
-- Each entry shows the writer's level name (Newcomer → Contributor → Rising Star → Expert Writer → Thought Leader), XP, blog count, and follower count
-- Top-3 positions get crown / medal icons
-
-#### Achievements & XP System
-- Configurable achievements stored in the database (e.g., "Write your first blog", "Get 100 likes")
-- Each achievement awards **XP points** that advance the writer's level
-- The **Dashboard** displays earned achievements in a visual grid alongside locked ones
-
-#### Analytics Dashboard (`/dashboard`)
-All charts are rendered with **Recharts**:
-
-| Chart | Data |
-|---|---|
-| Basic stats cards | Total blogs, total views, follower count, total likes |
-| View history | Daily line/area chart of blog views |
-| Engagement | Likes, comments, bookmarks aggregated |
-| Follower growth | Historical line chart of follower count |
-| Reading completion | Which articles readers finish |
-| Achievements grid | Earned vs locked achievements |
+#### Leaderboard, Achievements & Analytics
+- Writer XP and levelling system (Newcomer → Thought Leader)
+- Configurable achievements that award XP
+- Full analytics dashboard with Recharts (views, engagement, follower growth, reading completion)
 
 #### Real-time Messaging (`/messages`)
-A full in-app chat system backed by the WebSocket server:
-
-- **Conversation list** with last-message previews, sorted by recency
-- **Real-time message delivery** via WebSocket (port 3001) — messages appear instantly without polling
-- **Emoji picker** — curated grid (Smileys, Gestures, Objects) built in without an external dependency
-- **File / image sharing** — attach images and files to messages
-- **Read receipts** — double checkmark when the recipient has read the message
-- **User info panel** — sliding sidebar showing the other user's profile, email, join date, and a link to their public page
-
-#### Notifications
-- Real-time notification delivery for likes, comments, follows, and co-author invitations
-- Notification bell in the header with unread count badge
-- Mark as read individually or all at once
-
-#### Pricing Page
-Three tiers displayed on a polished pricing page (`/pricing`):
-
-| Plan | Price | Key perks |
-|---|---|---|
-| **Reader** (Free) | $0 | Unlimited reading, bookmarks, up to 3 articles/month |
-| **Dock Pro** | $8/mo or $72/yr | Unlimited articles, analytics dashboard, AI assistant, ad-free reading |
-| **Studio** | $20/mo | Everything in Pro + custom domain, monetisation, priority support |
-
-#### User Profile & Settings
-- **My Profile** — view your own published articles, follower/following lists, and manage relationships
-- **Author Profile** — public-facing page for any author (`/author/:id`)
-- **Settings** — update display name, bio, profile picture, and notification preferences
-- **Dark mode / Light mode** toggle available site-wide
+Full in-app chat via WebSocket — conversation list, emoji picker, file sharing, read receipts
 
 ---
 
@@ -222,22 +212,10 @@ Built with **Express**, **TypeScript**, **Prisma ORM**, **PostgreSQL**, and **Re
 
 #### Infrastructure Features
 - **Clerk authentication** — JWT validation on every protected route via `@clerk/express`
-- **Redis caching** — response caching with TTL on expensive queries; cache flushed on startup to prevent stale data
+- **Redis caching** — response caching with TTL on expensive queries
 - **Rate limiting** — global limiter middleware protects all routes from abuse
-- **Scheduled publishing** — a background scheduler scans for scheduled posts and publishes them at the correct time
-- **Email via SMTP** — transactional emails (notifications, invites) sent via the `email.ts` service
-- **CORS** — dynamically constructed allowlist of origins supporting local dev, configured prod URLs, and wildcard subdomains
-
-#### WebSocket Server
-- Uses native `ws` library on port 3001
-- Maintains a `userConnections` map for routing messages to specific users
-- Handles real-time chat message delivery
-- Designed to support WebRTC signaling (call-offer, call-answer, ice-candidate, call-end, call-reject messages) for future 1:1 voice/video calling
-
-#### Hocuspocus Collaborative Server
-- Runs on port 3002 using **Hocuspocus** (Y.Doc provider)
-- Each collaborative blog session has its own Y.Doc with separate channels for `title` (Y.Text) and `body` (TipTap Y.Doc)
-- Awareness syncs cursor positions and user presence across all connected clients
+- **Scheduled publishing** — background scheduler scans for scheduled posts
+- **Email via SMTP** — transactional emails via Nodemailer
 
 ---
 
@@ -245,97 +223,68 @@ Built with **Express**, **TypeScript**, **Prisma ORM**, **PostgreSQL**, and **Re
 
 A standalone **Next.js** application where users describe a coding project and an AI agent plans and writes the code, executed live in the browser via **WebContainers**.
 
+> **Architecture note:** DockStudio has its own Python FastAPI backend at `apps/dockstudio/api/`. The Next.js frontend communicates exclusively with this Python API — it does NOT use the main Node.js backend.
+
 #### Project Management
 - **Dashboard** (`/main`) — lists all of the user's projects; create new ones with a name and optional description
-- **New project modal** — choose a project template type before creation
-- Projects are persisted in a database via the `/api/projects` backend routes
+- Projects are persisted via the `/api/projects` routes on the Python API
 
 #### AI-Driven Code Generation
 - Each project has a **task prompt input** — describe what you want built in plain English
-- The AI returns a structured **plan** (JSON with step types: `create_file`, `run_command`, `explain`, etc.) before writing any code
+- The AI (Anthropic Claude) returns a structured **plan** (JSON with step types: `create_file`, `run_command`, etc.)
 - Each plan is displayed step-by-step so the user can follow what is happening
-- Steps are executed sequentially: files are written to the virtual filesystem, commands are run in the in-browser terminal
+- Steps are executed sequentially: files are written to the virtual filesystem, commands run in the terminal
+- **Auto-repair** — if a build fails, the error log and current files are sent back to Claude for a fix plan
 
 #### In-Browser Execution (WebContainers)
-- Uses **@webcontainer/api** to boot a real Node.js environment directly in the browser — no server-side sandbox needed
-- A custom `useWebContainer` hook manages the WebContainer lifecycle: boot, file mounting, process spawning
-- The **Preview panel** renders the running app in an `<iframe>` with a live URL pointing to the container's dev server
-- Users can switch between **Code Editor** and **Preview** tabs at any moment
+- Uses **@webcontainer/api** to boot a real Node.js environment directly in the browser
+- A custom `useWebContainer` hook manages the WebContainer lifecycle
+- The **Preview panel** renders the running app in an `<iframe>` with a live URL
+- COOP/COEP headers are set on `/project/*` routes for SharedArrayBuffer support
 
 #### Code Editor
-- Monaco-based editor (`CodeEditor` component) with syntax highlighting for JS, TS, JSON, CSS, HTML, Markdown, Python and more
-- File language is inferred from the file extension
-- Read and write individual files — edits are reflected in the WebContainer immediately
+- Monaco-based editor with syntax highlighting for JS, TS, JSON, CSS, HTML, Markdown, Python and more
+- Edits are reflected in the WebContainer immediately
 
 #### Terminal
-- `PrettyTerminal` component renders a styled terminal pane inside the project workspace
-- Shows stdout/stderr from commands run inside the WebContainer
+- Styled terminal pane rendering stdout/stderr from WebContainer commands
 - Colour-coded output for easy reading
 
-#### Sidebar Panels
-- **Tasks panel** — history of all submitted tasks and their statuses (`pending`, `in_progress`, `completed`, `failed`), expandable to show plan steps
-- **Files panel** — tree view of the virtual filesystem; click any file to open it in the editor
+#### Python FastAPI Backend (`apps/dockstudio/api/`)
 
-#### Theme & Auth
-- Full **dark / light mode** toggle persisted per user
-- Authentication via **Clerk** (`@clerk/nextjs`) — all project routes are protected under `(authedRoutes)`
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/users/sync` | POST | Upsert user from Clerk JWT |
+| `/api/projects/` | GET/POST | List / create projects |
+| `/api/projects/{id}` | GET/PATCH/DELETE | Manage individual projects |
+| `/api/projects/{id}/files` | GET/PUT | File persistence with version history |
+| `/api/projects/{id}/tasks` | GET/POST | List / create AI tasks |
+| `/api/tasks/{id}` | GET/DELETE | Retrieve / delete a task |
+| `/api/tasks/{id}/approve` | POST | Approve a planned task |
+| `/api/tasks/{id}/repair` | POST | Send error log to AI for auto-repair |
+| `/health` | GET | Health check |
 
----
-
-### 4. Admin Panel — Legacy (`apps/admin`)
-
-A lightweight, self-contained admin UI built with **vanilla HTML, Tailwind CSS CDN, and plain JavaScript** — no build step required.
-
-| Page | Purpose |
-|---|---|
-| `dashboard.html` | Platform overview: active users, total posts, recent signups, key metrics |
-| `users.html` | Search, filter, ban / unban, and inspect individual user accounts |
-| `content.html` | Review and moderate all published and drafted blog content |
-| `analytics.html` | Site-wide charts for traffic, engagement, and growth |
-| `settings.html` | Platform-level configuration |
-
-Served by a small Express server in `apps/admin/server/`. Uses the same backend API endpoints as the main app, hitting `/api/admin/*` protected routes.
+#### Database Schema (Prisma)
+The DockStudio API uses its own Prisma schema with models: `User`, `Project`, `ProjectSettings`, `Task`, `TaskStep`, `ProjectFile`, `FileVersion`, `Approval`, `Run`, `RunLog`, `RuntimeSession`.
 
 ---
 
-### 5. Admin Panel — Next.js (`apps/admin-next`)
-
-A fully rebuilt, production-grade admin dashboard in **Next.js 15 (App Router)** with **Tailwind CSS**, **Prisma**, and a custom design system.
-
-- Protected under `(admin)` route group with a dedicated login page
-- Connects directly to the database via **Prisma** as well as the backend API
-- Designed as a SaaS-style admin UI with a dark-mode-compatible theme system
-- Provides the same moderation/analytics capabilities as the legacy panel with a modern UX
-
----
-
-### 6. Monitoring (`apps/monitoring`)
+### 4. Monitoring (`apps/monitoring`)
 
 A **self-hosted health monitoring service** built with **Node.js + Express** that probes all DraftDock services on a schedule.
 
-#### How it works
-1. A **scheduler** runs a set of *checker* functions at a configurable interval
-2. Each run is logged to disk under `logs/` for audit and debugging
-3. If any probe fails, a **batched email alert** is sent via SMTP
-4. A lightweight **Express dashboard** (`/`) shows the current health status of all probes
-
-#### Checker Types
-
 | Checker | What it probes |
 |---|---|
-| `httpChecker` | HTTP/HTTPS endpoint reachability and response time; asserts on status codes |
-| `dbChecker` | PostgreSQL database connectivity — runs a lightweight query to verify the DB is up |
+| `httpChecker` | HTTP/HTTPS endpoint reachability and response time |
+| `dbChecker` | PostgreSQL database connectivity |
 | `ec2Checker` | SSH reachability and basic load metrics on EC2 instances |
 | `ec2LogChecker` | Reads application logs from EC2 and scans for error patterns |
 
-#### Configuration
-- Probes are defined in `src/config.ts` — add, remove, or adjust any endpoint without touching probe logic
-- SMTP settings and alert thresholds are read from `.env`
-- `data/` directory holds state between runs (e.g., previous status) to suppress flapping alerts
+If any probe fails, a **batched email alert** is sent via SMTP. A lightweight Express dashboard shows current health status.
 
 ---
 
-### 7. Shared Packages
+### 5. Shared Packages
 
 | Package | Purpose |
 |---|---|
@@ -349,118 +298,220 @@ A **self-hosted health monitoring service** built with **Node.js + Express** tha
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, TypeScript, Tailwind CSS, TipTap, Recharts |
-| Backend | Node.js, Express, TypeScript, Prisma, PostgreSQL, Redis |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS, TipTap, Recharts |
+| Backend | Node.js, Express 5, TypeScript, Prisma, PostgreSQL, Redis |
 | Real-time | WebSockets (`ws`), Hocuspocus (Y.Doc CRDT), WebContainers |
-| AI | Google Gemini / OpenAI (via `/api/ai` routes) |
-| Auth | Clerk (frontend + backend) |
+| AI (Blogging) | Google Gemini / OpenAI (via `/api/ai` routes) |
+| AI (DockStudio) | Anthropic Claude (code generation & repair) |
+| Auth | Clerk (frontend + backend + DockStudio) |
 | IDE | Next.js, Monaco Editor, @webcontainer/api |
-| Admin | Next.js 15 App Router, Prisma |
+| DockStudio API | Python, FastAPI, prisma-client-py, Uvicorn |
 | Monitoring | Node.js, Express, SMTP alerting |
-| Monorepo | Turborepo |
+| Monorepo | Turborepo, npm workspaces |
 | Containerisation | Docker, Docker Compose |
-| Deployment | Google Cloud Run, EC2, Render |
+| Database | PostgreSQL (Neon), Redis |
+| Deployment | Google Cloud Run, EC2, Render, Vercel |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js ≥ 18
-- Docker & Docker Compose
 
-### 1. Clone the repository
+| Requirement | Version |
+|---|---|
+| **Node.js** | ≥ 20 (see `.node-version`) |
+| **npm** | ≥ 11 |
+| **Python** | ≥ 3.10 (for DockStudio API) |
+| **Docker & Docker Compose** | Latest (for Redis) |
+
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/MistaHolmes/DraftDock.git
 cd DraftDock
-```
 
-### 2. Start infrastructure services
-
-```bash
-docker-compose up -d
-```
-
-This starts PostgreSQL and Redis.
-
-### 3. Install dependencies
-
-```bash
+# Install all workspace dependencies (root + all apps)
 npm install
 ```
 
-### 4. Configure environment variables
+### 2. Environment Variables
 
-Each app reads from its own `.env` file. Copy the example files and fill in the values:
+Each app reads from its own `.env` file. Create them from the examples below:
 
-```bash
-cp apps/backend/.env.example apps/backend/.env
-cp apps/dockstudio/.env.local.example apps/dockstudio/.env.local
+#### `apps/backend/.env`
+
+```env
+# Database (PostgreSQL — Neon or local)
+DATABASE_URL=postgresql://user:pass@host:5432/dbname?sslmode=require
+DIRECT_URL=postgresql://user:pass@host:5432/dbname?sslmode=require
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Clerk Authentication
+CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+
+# Server Ports
+PORT=3000
+WS_PORT=3001
+COLLAB_PORT=3002
+
+# Email (Optional — for notifications)
+EMAIL_USER=your@email.com
+EMAIL_PASS=your_app_password
+
+# AI Features (Optional — uses mock if empty)
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=AIza...
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-At minimum you'll need:
-- `DATABASE_URL` — PostgreSQL connection string
-- `REDIS_URL` — Redis connection string
-- `CLERK_SECRET_KEY` + `VITE_CLERK_PUBLISHABLE_KEY` — from [clerk.com](https://clerk.com)
+#### `apps/frontend/.env`
 
-### 5. Run database migrations
+```env
+# Clerk Authentication (Client side)
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 
-```bash
-cd apps/backend && npx prisma migrate deploy
+# Backend API URLs
+VITE_API_URL=http://localhost:3000
+VITE_COLLAB_WS_URL=ws://localhost:3002
+VITE_WS_URL=http://localhost:3001
 ```
 
-### 6. Start all apps
+#### `apps/dockstudio/.env.local`
+
+```env
+# Clerk (Authentication)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+
+# Clerk routes
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/main
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/main
+
+# DockStudio Python API URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+> **Important:** `NEXT_PUBLIC_API_URL` must point to the **Python FastAPI server** (default port 8000), not the Node.js backend.
+
+#### `apps/dockstudio/api/.env`
+
+```env
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:pass@host:5432/dbname?sslmode=require
+
+# Clerk (for JWT verification)
+CLERK_SECRET_KEY=sk_test_...
+CLERK_JWKS_URL=https://your-clerk-instance.clerk.accounts.dev/.well-known/jwks.json
+
+# Anthropic Claude
+ANTHROPIC_API_KEY=sk-ant-...
+CLAUDE_MODEL=claude-haiku-4-5-20251001
+
+# Allowed frontend origins (comma-separated)
+FRONTEND_URLS=http://localhost:3000,http://localhost:3004
+```
+
+### 3. Database Setup
+
+The project uses **two separate databases** — one for the main blogging platform (Prisma JS) and one for DockStudio (Prisma Python).
+
+#### Backend (Node.js Prisma)
 
 ```bash
+# Generate the Prisma client
+cd apps/backend
+npx prisma generate --schema=prisma/schema.prisma
+
+# Run migrations (first time / schema changes)
+npx prisma migrate deploy
+```
+
+#### DockStudio API (Python Prisma)
+
+```bash
+cd apps/dockstudio/api
+
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Generate the Prisma Python client
+python -m prisma generate --schema=prisma/schema.prisma
+
+# Push schema to database (first time)
+python -m prisma db push --schema=prisma/schema.prisma
+```
+
+> **Note:** DockStudio uses `prisma-client-py`, which is the Python Prisma client. Use `python -m prisma` instead of `npx prisma` for all Prisma operations.
+
+### 4. Run All Apps with Turbo
+
+```bash
+# Start Redis first
+docker-compose up -d
+
+# Start all apps concurrently via Turborepo
 npm run dev
 ```
 
-| App | Default URL |
+> This will NOT start the DockStudio Python API — you need to start that separately (see step 6).
+
+**Default ports:**
+
+| App | URL |
 |---|---|
-| Frontend | http://localhost:5173 |
+| Frontend (Vite) | http://localhost:5173 |
 | Backend API | http://localhost:3000 |
-| WebSocket | ws://localhost:3001 |
+| WebSocket Server | ws://localhost:3001 |
 | Collab Server | ws://localhost:3002 |
-| DockStudio | http://localhost:3003 |
-| Admin (Next.js) | http://localhost:3004 |
+| DockStudio (Next.js) | http://localhost:3003 |
 
----
+### 5. Run Apps Individually
 
-## Running Apps Individually (Without Turbo)
-
-If `npm run dev` fails with `turbo: not found`, start each service separately:
+If you prefer to start services one at a time (or if `turbo` is not installed):
 
 ```bash
-# 1. Start Redis
-cd apps/backend && docker-compose up -d redis
+# Terminal 1 — Redis
+docker-compose up -d
 
-# 2. Start Backend API (in a new terminal)
-cd apps/backend && npm run dev
+# Terminal 2 — Backend API
+cd apps/backend
+npm run dev           # Builds TS then starts server on ports 3000, 3001, 3002
 
-# 3. Start Frontend (in a new terminal)
-cd apps/frontend && npm run dev
+# Terminal 3 — Frontend
+cd apps/frontend
+npm run dev           # Vite dev server on port 5173
 
-# 4. Start DockStudio (in a new terminal)
-cd apps/dockstudio && npm run dev
-
-# 5. Start Admin (in a new terminal)
-cd apps/admin-next && npm run dev
-
-# 6. Start Monitoring (in a new terminal)
-cd apps/monitoring/draftdock && npm start
+# Terminal 4 — DockStudio (Next.js frontend)
+cd apps/dockstudio
+npm run dev           # Next.js dev server on port 3000 (configure per turbo)
 ```
 
----
+### 6. DockStudio Python API Setup
 
-## Run with Docker (Frontend Image)
+The DockStudio Python API is a **separate process** that must be started independently:
 
 ```bash
-docker pull mistaholmes/draftdockfe:latest
-docker run -p 3000:3000 mistaholmes/draftdockfe:latest
+cd apps/dockstudio/api
+
+# Activate virtual environment
+source .venv/bin/activate
+
+# Start FastAPI with hot reload
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+The API will be available at `http://localhost:8000` with Swagger docs at `http://localhost:8000/docs`.
 
 ---
 
@@ -470,15 +521,16 @@ Open [http://localhost:3000](http://localhost:3000).
 |---|---|
 | Frontend | Google Cloud Run |
 | Backend | Google Cloud Run / EC2 |
-| DockStudio | Render / Vercel |
-| Admin Next | Vercel |
+| DockStudio (Next.js) | Render / Vercel |
+| DockStudio API | Render |
 | Monitoring | Self-hosted (EC2) |
 
-Live frontend: **[https://www.draftdocks.in/](https://www.draftdocks.in/)**
+Live sites:
+- **Blogging Platform:** [https://www.draftdocks.in/](https://www.draftdocks.in/)
+- **DockStudio:** [https://dockstudio.abhasbehera.in/](https://dockstudio.abhasbehera.in/)
 
 ---
 
 ## License
 
 [MIT](LICENSE)
-

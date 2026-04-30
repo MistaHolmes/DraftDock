@@ -1,18 +1,40 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## What is DockStudio?
+
+`DockStudio` is the frontend app in `apps/dockstudio`. It is a Next.js application that runs locally in development mode and can be built for production.
+
 ## Getting Started
 
-First, run the development server:
+### Run in development
 
 ```bash
+cd apps/dockstudio
+npm install
 npm run dev
-# or
+```
+
+You can also use `yarn`, `pnpm`, or `bun` if those package managers are installed:
+
+```bash
 yarn dev
 # or
 pnpm dev
 # or
 bun dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Run in production mode
+
+```bash
+cd apps/dockstudio
+npm run build
+npm start
+```
+
+Open [http://localhost:3000](http://localhost:3000) after the production server starts.
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
