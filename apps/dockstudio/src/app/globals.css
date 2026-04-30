@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── DockStudio (DraftDock sub-feature) theme ────────────────────
+   Light-first design matching DraftDock's clean white aesthetic.
+   Accent: violet-600 (#7c3aed)
+   Background: white (#ffffff)
+   Fonts: Space Grotesk (headline) + Inter (body)
+──────────────────────────────────────────────────────────────── */
+
+@layer base {
+  /* Dark mode by default */
+  :root {
+    /* Material Design 3 dark surface system matching DockStudio IDE mock */
+    --background: 220 15% 8%;           /* #111317  surface */
+    --foreground: 240 12% 90%;          /* #e2e2e8  on-surface */
+    --card: 222 9% 13%;                 /* #1e2024  surface-container */
+    --card-foreground: 240 12% 90%;
+    --popover: 222 9% 13%;
+    --popover-foreground: 240 12% 90%;
+    --primary: 222 100% 84%;            /* #adc6ff  primary */
+    --primary-foreground: 214 100% 21%; /* #002e6a  on-primary */
+    --secondary: 217 7% 28%;            /* #43474d  secondary-container */
+    --secondary-foreground: 222 9% 78%; /* #c3c6cd  secondary */
+    --muted: 220 7% 17%;                /* #282a2e  surface-container-high */
+    --muted-foreground: 228 9% 59%;     /* #8c909f  outline */
+    --accent: 218 100% 65%;             /* #4d8eff  primary-container */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100% / 0.06;         /* white/5-6 subtle borders */
+    --input: 222 9% 13%;                /* same as card */
+    --ring: 222 100% 84%;               /* same as primary */
+    --radius: 0.625rem;
+  }
+
+  /* Light-theme overrides when `.dark` is present */
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 5%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 91%;
+    --input: 0 0% 91%;
+    --ring: 262 83% 58%;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline, 'Space Grotesk', var(--font-body, sans-serif));
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .font-headline {
+    font-family: var(--font-headline, 'Space Grotesk', sans-serif);
+  }
+}
+
+/* Focus-visible: keyboard-only focus ring */
+*:focus-visible {
+  outline: 2px solid hsl(262, 83%, 58%);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* IDE thin scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 10px; }
+
+/* ── Hide Clerk development-mode notice bar ─────────────────── */
+[class*="cl-developmentMode"],
+[class*="cl-badge--development"],
+[data-clerk-badge],
+div[class*="cl-badge"],
+div[class*="development-mode"],
+.cl-alert[data-type="development"],
+#cl-development-mode-notice {
+  display: none !important;
+}

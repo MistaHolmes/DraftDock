@@ -1,7 +1,7 @@
 services:
   # Backend Application
+  # Redis is now on Redis Cloud — REDIS_URL is passed via environment or .env
   backend:
-    build: .
     image: mistaholmes/draftdock-be-mar-21
     container_name: draftdock-backend
     restart: unless-stopped
@@ -10,8 +10,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      WS_PORT: 3001
+      COLLAB_PORT: 3002
     ports:
       - "3000:3000"
+      - "3001:3001"
+      - "3002:3002"
     networks:
       - draftdock-network
     volumes:
@@ -41,7 +45,7 @@ services:
       - draftdock-network
     depends_on:
       backend:
-         condition: service_healthy
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
@@ -64,49 +68,81 @@ configs:
       }
 
       http {
-          # WebSocket upgrade map — required for proper WS proxying
           map $$http_upgrade $$connection_upgrade {
               default upgrade;
               '' close;
           }
 
-          upstream backend {
+          upstream api_backend {
               server backend:3000;
               keepalive 32;
+          }
+
+          upstream ws_backend {
+              server backend:3001;
+              keepalive 16;
+          }
+
+          upstream collab_backend {
+              server backend:3002;
+              keepalive 16;
           }
 
           server {
               listen 80;
               server_name _;
 
-              # Health check pass-through (no logging to reduce noise)
               location /health {
-                  proxy_pass http://backend;
+                  proxy_pass http://api_backend;
                   proxy_http_version 1.1;
                   access_log off;
               }
 
-              # WebSocket connections MUST be proxied with Upgrade headers
-              location / {
-                  proxy_pass http://backend;
+              location /ws {
+                  proxy_pass http://ws_backend;
                   proxy_http_version 1.1;
-
-                  # WebSocket upgrade headers (critical for ws:// / wss://)
                   proxy_set_header Upgrade $$http_upgrade;
                   proxy_set_header Connection $$connection_upgrade;
-
-                  # Standard proxy headers
                   proxy_set_header Host $$host;
                   proxy_set_header X-Real-IP $$remote_addr;
                   proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
                   proxy_set_header X-Forwarded-Proto $$scheme;
-
-                  # Keep WebSocket connections alive longer (default 60s is too short)
                   proxy_read_timeout 3600s;
                   proxy_send_timeout 3600s;
-
-                  # Disable buffering for real-time streaming
                   proxy_buffering off;
+              }
+
+              location /collab {
+                  proxy_pass http://collab_backend;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection $$connection_upgrade;
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+                  proxy_read_timeout 3600s;
+                  proxy_send_timeout 3600s;
+                  proxy_buffering off;
+              }
+
+              location /api/ {
+                  proxy_pass http://api_backend;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+                  proxy_set_header Connection "";
+              }
+
+              location / {
+                  proxy_pass http://api_backend;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
               }
           }
       }

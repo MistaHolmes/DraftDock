@@ -1,0 +1,23 @@
+# SSH private keys — never commit
+.key/*.pem
+.key/*.key
+.key/id_*
+!.key/.gitkeep
+.key/
+
+# Terraform state & sensitive files
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Ansible retry files
+*.retry
+
+.last_instance_ip
+
+# Dynamic inventory files
+inventory.ini
+
+deploy.yml

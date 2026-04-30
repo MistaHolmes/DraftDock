@@ -40,3 +40,5 @@ yarn-error.log*
 *.pem
 
 etc.txt
+
+./deployment

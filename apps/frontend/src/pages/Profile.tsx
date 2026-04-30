@@ -1,150 +1,255 @@
-import { UserButton, useUser } from "@clerk/clerk-react";
-import Header from "../components/ui/header";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { UserButton, useAuth, useUser } from "@clerk/clerk-react";
+import { Users, UserPlus, UserMinus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePageCache } from "@/context/PageCacheContext";
 import UserContentSection from "../components/UserContent";
-import { Footer } from "@/components/Footer";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+interface FollowUser {
+  id: string;
+  email: string;
+  name?: string;
+  profilePicture?: string;
+  bio?: string;
+}
 
 const ProfileComponent = () => {
-  const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"followers" | "following">("followers");
+  const [followers, setFollowers] = useState<FollowUser[]>([]);
+  const [following, setFollowing] = useState<FollowUser[]>([]);
+  const [loadingFollow, setLoadingFollow] = useState(true);
+  const [unfollowingId, setUnfollowingId] = useState<string | null>(null);
+  const cache = usePageCache();
 
-  const userName = isLoaded && user?.primaryEmailAddress?.emailAddress 
-    ? user.primaryEmailAddress.emailAddress.split("@")[0].replace(/^./, c => c.toUpperCase())
-    : "DraftDock User";
+  useEffect(() => {
+    const cached = cache.get('profile:follows', 180000);
+    if (cached) {
+      setFollowers(cached.followers);
+      setFollowing(cached.following);
+      setLoadingFollow(false);
+      return;
+    }
+    const fetchFollowData = async () => {
+      try {
+        const token = await getToken();
+        const headers = { Authorization: `Bearer ${token}` };
+        const [followersRes, followingRes] = await Promise.all([
+          fetch(`${API_URL}/api/user/followers`, { headers }),
+          fetch(`${API_URL}/api/user/following`, { headers }),
+        ]);
+        const fData = followersRes.ok ? await followersRes.json() : [];
+        const gData = followingRes.ok ? await followingRes.json() : [];
+        setFollowers(fData);
+        setFollowing(gData);
+        cache.set('profile:follows', { followers: fData, following: gData });
+      } catch (err) {
+        console.error("Failed to fetch follow data:", err);
+      } finally {
+        setLoadingFollow(false);
+      }
+    };
+    fetchFollowData();
+  }, []);
+
+  const handleUnfollow = async (userId: string) => {
+    setUnfollowingId(userId);
+    try {
+      const token = await getToken();
+      await fetch(`${API_URL}/api/user/unfollow/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      cache.invalidate('profile:follows');
+      setFollowing((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err) {
+      console.error("Unfollow failed:", err);
+    } finally {
+      setUnfollowingId(null);
+    }
+  };
+
+  const renderUserCard = (user: FollowUser, showUnfollow = false) => {
+    const displayName = user.name || user.email.split("@")[0];
+    const initials = displayName.slice(0, 2).toUpperCase();
+    return (
+      <motion.div
+        key={user.id}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer group"
+        onClick={() => navigate(`/author/${user.id}`)}
+      >
+        {user.profilePicture ? (
+          <img src={user.profilePicture} alt={displayName} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-sm font-bold flex-shrink-0">
+            {initials}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 dark:text-white text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            {displayName}
+          </p>
+          {user.bio && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.bio}</p>
+          )}
+        </div>
+        {showUnfollow && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleUnfollow(user.id); }}
+            disabled={unfollowingId === user.id}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-red-300 hover:text-red-600 hover:bg-red-50 dark:hover:border-red-800 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-all disabled:opacity-40"
+          >
+            <UserMinus size={12} />
+            {unfollowingId === user.id ? "..." : "Unfollow"}
+          </button>
+        )}
+      </motion.div>
+    );
+  };
 
   return (
-    <div className="bg-surface text-on-surface font-body selection:bg-secondary-container selection:text-on-secondary-container blueprint-grid min-h-screen flex flex-col">
-      <Header />
+    <>
+      <div className="max-w-5xl mx-auto py-8 px-4 space-y-8">
 
-      <main className="pt-32 pb-24 max-w-7xl mx-auto px-6 w-full flex-1">
         {/* Profile Header */}
-        <header className="flex flex-col md:flex-row items-start gap-12 mb-20">
-          <div className="relative group">
-            <div className="w-40 h-40 bg-surface-container-highest rounded-xl overflow-hidden ring-4 ring-white shadow-sm flex items-center justify-center">
-              {isLoaded && user?.imageUrl ? (
-                <img className="w-full h-full object-cover grayscale transition-all duration-500 group-hover:grayscale-0" alt="Profile" src={user.imageUrl} />
-              ) : (
-                <div className="w-full h-full object-cover grayscale transition-all duration-500 group-hover:grayscale-0 bg-primary opacity-20" />
-              )}
-            </div>
-          </div>
-          <div className="flex-1 space-y-6">
-            <div>
-              <h1 className="text-5xl font-extrabold tracking-tighter font-headline mb-2">{userName}</h1>
-              <p className="text-on-surface-variant max-w-xl text-lg leading-relaxed">
-                  Architecting the future of code and prose. Sharing architectural insights, code templates, and building scalable system designs.
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-8 text-sm font-medium">
-              <div className="flex flex-col">
-                <span className="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Published</span>
-                <span className="text-xl font-headline font-bold">12</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Drafts</span>
-                <span className="text-xl font-headline font-bold">4</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Reads</span>
-                <span className="text-xl font-headline font-bold">1.2k</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-zinc-400 font-label uppercase tracking-widest text-[10px] mb-1">Member Since</span>
-                <span className="text-xl font-headline font-bold">2024</span>
-              </div>
-            </div>
-            
-            <div className="flex gap-4 pt-4">
-              <div className="relative bg-surface-container-highest text-on-surface pl-2 pr-6 py-1.5 rounded-md font-headline font-bold flex items-center gap-3 hover:bg-surface-container-high transition-all">
-                <div className="relative z-10 pointer-events-none">
-                  <UserButton
-                      afterSignOutUrl="/"
-                      appearance={{
-                      elements: {
-                          userButtonAvatarBox: "w-8 h-8",
-                      },
-                  }}/>
-                </div>
-                <span className="pointer-events-none">Manage Account</span>
-                {/* Transparent overlay that catches clicks and proxies them to the Clerk button */}
-                <div 
-                   className="absolute inset-0 w-full h-full z-20 cursor-pointer"
-                   onClick={(e) => {
-                     const btn = e.currentTarget.parentElement?.querySelector('.cl-userButtonTrigger') as HTMLButtonElement | null;
-                     if (btn) btn.click();
-                   }}
+        <header className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-8">
+          <div className="flex flex-col sm:flex-row items-start gap-8">
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              <div className="w-24 h-24 rounded-2xl overflow-hidden ring-2 ring-gray-100 dark:ring-gray-800 shadow-sm">
+                <img
+                  src={user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
                 />
               </div>
-              <a href="https://buymeacoffee.com/abhash" target="_blank" rel="noopener noreferrer" className="bg-secondary text-on-secondary px-6 py-2.5 rounded-md font-headline font-bold flex items-center gap-2 hover:bg-secondary/90 transition-all">
-                <span className="material-symbols-outlined text-sm">coffee</span>
-                Support
-              </a>
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 space-y-4">
+              <div>
+                <h1 className="text-2xl font-headline font-bold text-gray-900 dark:text-white">
+                  {user?.firstName && user?.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user?.firstName || user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "User"}
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                  {user?.emailAddresses?.[0]?.emailAddress || ""}
+                </p>
+              </div>
+
+              {/* Stats Row */}
+              <div className="flex flex-wrap gap-8">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Followers</span>
+                  <span className="text-2xl font-headline font-bold text-gray-900 dark:text-white">{followers.length}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Following</span>
+                  <span className="text-2xl font-headline font-bold text-gray-900 dark:text-white">{following.length}</span>
+                </div>
+              </div>
+
+              {/* Clerk Account Management Button */}
+              <div className="flex items-center gap-3 pt-1">
+                <UserButton
+                  afterSignOutUrl="/"
+                  appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }}
+                />
+                <span className="text-xs text-gray-400 dark:text-gray-500">Manage account settings</span>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="flex flex-col lg:flex-row gap-16">
-          {/* Content Area */}
-          <div className="flex-1 w-full">
+        {/* Main Content: Blogs + Network sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* Blogs / Drafts */}
+          <div className="lg:col-span-2">
             <UserContentSection />
           </div>
 
-          {/* Sidebar */}
-          <aside className="w-full lg:w-80 space-y-12">
-            {/* Quick Insights */}
-            <section className="bg-surface-container-low p-8 rounded-xl">
-              <h4 className="font-headline font-bold text-xs uppercase tracking-widest mb-6">Quick Insights</h4>
-              <div className="space-y-6">
-                <div className="flex justify-between items-end border-b border-outline-variant/20 pb-4">
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Weekly Growth</p>
-                    <p className="text-2xl font-bold font-headline">+12.4%</p>
-                  </div>
-                  <span className="material-symbols-outlined text-green-600 mb-1">trending_up</span>
+          {/* Network Sidebar */}
+          <aside className="space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/30 text-violet-600 rounded-xl">
+                  <Users className="w-4 h-4" />
                 </div>
-                <div className="flex justify-between items-end border-b border-outline-variant/20 pb-4">
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Top Category</p>
-                    <p className="text-2xl font-bold font-headline">Architecture</p>
-                  </div>
-                  <span className="material-symbols-outlined text-primary mb-1">terminal</span>
-                </div>
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Engagement</p>
-                    <p className="text-2xl font-bold font-headline">High</p>
-                  </div>
-                  <span className="material-symbols-outlined text-secondary mb-1">favorite</span>
-                </div>
+                <h2 className="text-base font-headline font-bold text-gray-900 dark:text-white">Network</h2>
               </div>
-            </section>
-            
-            {/* Trending Tags */}
-            <section>
-              <h4 className="font-headline font-bold text-xs uppercase tracking-widest mb-6">Trending Tags</h4>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-4 py-2 bg-surface-container-lowest rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all cursor-pointer">#webassembly</span>
-                <span className="px-4 py-2 bg-surface-container-lowest rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all cursor-pointer">#rustlang</span>
-                <span className="px-4 py-2 bg-surface-container-lowest rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all cursor-pointer">#productivity</span>
-                <span className="px-4 py-2 bg-surface-container-lowest rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all cursor-pointer">#devops</span>
-                <span className="px-4 py-2 bg-surface-container-lowest rounded-md text-xs font-bold border border-outline-variant/10 hover:bg-primary hover:text-white transition-all cursor-pointer">#frontend</span>
+
+              {/* Tab toggles */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-6">
+                <button
+                  onClick={() => setActiveTab("followers")}
+                  className={`flex-1 py-2.5 font-bold text-xs uppercase tracking-widest rounded-lg transition-all ${
+                    activeTab === "followers"
+                      ? "bg-white dark:bg-gray-700 text-violet-600 shadow"
+                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  Followers ({followers.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("following")}
+                  className={`flex-1 py-2.5 font-bold text-xs uppercase tracking-widest rounded-lg transition-all ${
+                    activeTab === "following"
+                      ? "bg-white dark:bg-gray-700 text-violet-600 shadow"
+                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  Following ({following.length})
+                </button>
               </div>
-            </section>
-            
-            {/* Community Card */}
-            <section className="bg-secondary-container p-8 rounded-xl">
-              <h4 className="font-headline font-bold text-secondary text-sm mb-2">Support Research</h4>
-              <p className="text-on-secondary-container text-xs mb-6 font-medium leading-relaxed">Your contributions help fund deep-dive technical research and open-source documentation.</p>
-              <a href="https://buymeacoffee.com/abhash" target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-secondary text-on-secondary py-3 rounded-md font-headline font-bold text-sm hover:opacity-90 transition-all">
-                Buy Me a Coffee
-              </a>
-            </section>
+
+              {/* Content */}
+              {loadingFollow ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <AnimatePresence mode="wait">
+                  {activeTab === "followers" ? (
+                    <motion.div key="followers" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3 max-h-96 overflow-y-auto">
+                      {followers.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                          <UserPlus className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                          <p className="text-xs font-bold uppercase tracking-tighter">No followers yet</p>
+                        </div>
+                      ) : (
+                        followers.map((u) => renderUserCard(u, false))
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="following" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3 max-h-96 overflow-y-auto">
+                      {following.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                          <Users className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                          <p className="text-xs font-bold uppercase tracking-tighter">No follows yet</p>
+                        </div>
+                      ) : (
+                        following.map((u) => renderUserCard(u, true))
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
+            </div>
           </aside>
+
         </div>
-      </main>
-      <div className="mt-8">
-        <Footer />
       </div>
-    </div>
+    </>
   );
 };
 

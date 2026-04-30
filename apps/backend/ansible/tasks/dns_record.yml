@@ -1,0 +1,52 @@
+---
+# Per-domain DNS update tasks. This file is intended to be included with
+# `include_tasks` and looped over a `domain` variable.
+
+- name: "DNS | Query existing record for {{ domain }}"
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id }}/dns_records?name={{ domain }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    return_content: yes
+    status_code: 200
+  register: cf_get
+
+- name: "DNS | Set record_id fact for {{ domain }}"
+  set_fact:
+    record_id: "{{ (cf_get.json.result | length > 0) | ternary(cf_get.json.result[0].id, '') }}"
+
+- name: "DNS | Update existing record for {{ domain }}"
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id }}/dns_records/{{ record_id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      type: "A"
+      name: "{{ domain }}"
+      content: "{{ dns_ip }}"
+      ttl: 1       # must be 1 (automatic) when proxied=true
+      proxied: "{{ cf_proxied }}"
+    status_code: 200,201
+  when: record_id != ""
+
+- name: "DNS | Create new record for {{ domain }}"
+  uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id }}/dns_records"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      type: "A"
+      name: "{{ domain }}"
+      content: "{{ dns_ip }}"
+      ttl: 1       # must be 1 (automatic) when proxied=true
+      proxied: "{{ cf_proxied }}"
+    status_code: 200,201
+  when: record_id == ""

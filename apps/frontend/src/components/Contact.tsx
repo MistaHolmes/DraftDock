@@ -1,8 +1,9 @@
 import { Mail, MessageCircle, Github, Twitter, Coffee, MapPin, Clock } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 export function Contact() {
   const email = 'abhasbehera320@gmail.com';
-  
+
   const handleGmail = () => {
     window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${email}`, '_blank');
   };
@@ -22,7 +23,7 @@ export function Contact() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Contact Info */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
@@ -30,7 +31,7 @@ export function Contact() {
                 <Mail className="w-6 h-6 text-blue-500" />
                 <h2 className="text-2xl font-semibold text-gray-900">Get in Touch</h2>
               </div>
-              
+
               <div className="space-y-8">
                 {/* Primary Contact */}
                 <div className="text-center py-8">
@@ -96,7 +97,7 @@ export function Contact() {
 
           {/* Contact Info & Social Links */}
           <div className="space-y-6">
-            
+
             {/* Quick Contact */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Contact</h3>
@@ -185,6 +186,7 @@ export function Contact() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

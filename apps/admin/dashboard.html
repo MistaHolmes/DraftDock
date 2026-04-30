@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>DraftDock Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-low": "#eef1f3",
+                        "on-primary-container": "#2e006c",
+                        "tertiary": "#9e3657",
+                        "on-primary": "#f8f0ff",
+                        "surface-container-high": "#dfe3e6",
+                        "on-tertiary": "#ffeff1",
+                        "surface-bright": "#f5f7f9",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#390083",
+                        "on-secondary-fixed-variant": "#6b369a",
+                        "error-container": "#f74b6d",
+                        "on-surface-variant": "#595c5e",
+                        "primary-container": "#b28cff",
+                        "surface-tint": "#702ae1",
+                        "primary-fixed-dim": "#a67aff",
+                        "inverse-on-surface": "#9a9d9f",
+                        "surface-dim": "#d0d5d8",
+                        "on-secondary-fixed": "#4d137b",
+                        "on-tertiary-container": "#64042d",
+                        "on-surface": "#2c2f31",
+                        "inverse-surface": "#0b0f10",
+                        "tertiary-fixed-dim": "#f77c9e",
+                        "surface-container-highest": "#d9dde0",
+                        "secondary-fixed": "#e6c5ff",
+                        "on-background": "#2c2f31",
+                        "error": "#b41340",
+                        "surface": "#f5f7f9",
+                        "on-primary-fixed": "#000000",
+                        "on-secondary-container": "#612c90",
+                        "on-error": "#ffefef",
+                        "on-secondary": "#fbefff",
+                        "background": "#f5f7f9",
+                        "surface-container": "#e5e9eb",
+                        "inverse-primary": "#a476ff",
+                        "primary": "#702ae1",
+                        "secondary-fixed-dim": "#ddb3ff",
+                        "secondary-container": "#e6c5ff",
+                        "tertiary-fixed": "#ff8eac",
+                        "primary-dim": "#6411d5",
+                        "error-dim": "#a70138",
+                        "surface-variant": "#d9dde0",
+                        "secondary-dim": "#6a3599",
+                        "primary-fixed": "#b28cff",
+                        "outline-variant": "#abadaf",
+                        "outline": "#747779",
+                        "secondary": "#7742a6",
+                        "on-error-container": "#510017",
+                        "tertiary-container": "#ff8eac",
+                        "on-tertiary-fixed": "#380016",
+                        "on-tertiary-fixed-variant": "#711036",
+                        "tertiary-dim": "#8e294c"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-headline {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-background text-on-background min-h-screen flex overflow-hidden">
+    <!-- SideNavBar (Authority: JSON & Design System) -->
+    <aside
+        class="hidden md:flex flex-col h-screen w-64 bg-slate-100 dark:bg-slate-900 font-['Plus_Jakarta_Sans'] font-medium text-sm p-4">
+        <div class="flex items-center gap-3 px-2 py-4 mb-8">
+            <div class="w-10 h-10 bg-primary flex items-center justify-center rounded-xl rotate-3">
+                <span class="material-symbols-outlined text-on-primary" data-icon="edit_square">edit_square</span>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-violet-700 dark:text-violet-300 italic leading-none">DraftDock</h1>
+                <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Editorial Admin</span>
+            </div>
+        </div>
+        <nav class="flex-1 space-y-1">
+            <!-- Active State: Dashboard -->
+            <a class="flex items-center gap-3 px-4 py-3 text-violet-700 dark:text-violet-300 bg-violet-100/50 dark:bg-violet-900/30 rounded-xl font-bold transition-all scale-95 active:scale-90"
+                href="./dashboard.html">
+                <span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-xl transition-all scale-95 active:scale-90"
+                href="./content.html">
+                <span class="material-symbols-outlined" data-icon="description">description</span>
+                Content
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-xl transition-all scale-95 active:scale-90"
+                href="./users.html">
+                <span class="material-symbols-outlined" data-icon="group">group</span>
+                Users
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-xl transition-all scale-95 active:scale-90"
+                href="./analytics.html">
+                <span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+                Analytics
+            </a>
+
+        </nav>
+        <div class="mt-auto pt-4 border-t border-slate-200/10 space-y-1">
+            <button
+                class="w-full bg-primary text-on-primary py-3 rounded-full font-bold flex items-center justify-center gap-2 mb-4 hover:bg-primary-dim transition-all shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined" data-icon="add">add</span>
+                Write
+            </button>
+            <a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 transition-colors rounded-xl"
+                href="#">
+                <span class="material-symbols-outlined" data-icon="help">help</span>
+                Help
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 transition-colors rounded-xl"
+                href="#">
+                <span class="material-symbols-outlined" data-icon="logout">logout</span>
+                Logout
+            </a>
+        </div>
+    </aside>
+    <!-- Main Content Canvas -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-surface relative">
+        <!-- TopNavBar -->
+        <header class="w-full h-20 sticky top-0 z-50 bg-background dark:bg-slate-950 flex items-center justify-between px-8 font-['Plus_Jakarta_Sans']">
+            <div class="flex items-center flex-1">
+                <div class="relative w-full max-w-md">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        data-icon="search">search</span>
+                    <input
+                        class="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400"
+                        placeholder="Search platform analytics..." type="text" />
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-4 text-slate-600 dark:text-slate-400">
+                    <button class="hover:text-violet-500 transition-colors opacity-80 active:opacity-100">
+                        <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+                    </button>
+                    <button class="hover:text-violet-500 transition-colors opacity-80 active:opacity-100">
+                        <span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+                    </button>
+                </div>
+                <div class="h-8 w-[1px] bg-slate-200"></div>
+                <button id="top-logout-btn" class="ml-2 flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-xl font-bold transition-all text-sm border border-red-100 dark:border-red-900/50">
+                    <span class="material-symbols-outlined text-sm">logout</span>
+                    Logout
+                </button>
+            </div>
+        </header>
+        <!-- Dashboard Body -->
+        <div class="p-8 max-w-7xl mx-auto w-full space-y-10">
+            <!-- Welcome Header -->
+            <section class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold text-on-surface tracking-tight font-headline">Editorial Overview
+                    </h2>
+                    <p class="text-on-surface-variant font-body mt-1">Real-time performance across the DraftDock
+                        network.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        class="bg-surface-container-highest px-4 py-2 rounded-lg text-sm font-bold text-on-surface flex items-center gap-2 hover:bg-surface-dim transition-colors">
+                        <span class="material-symbols-outlined text-lg" data-icon="calendar_today">calendar_today</span>
+                        Last 30 Days
+                    </button>
+                    <button
+                        class="bg-primary px-4 py-2 rounded-lg text-sm font-bold text-on-primary flex items-center gap-2 hover:bg-primary-dim transition-all">
+                        <span class="material-symbols-outlined text-lg" data-icon="download">download</span>
+                        Export
+                    </button>
+                </div>
+            </section>
+            <!-- Stat Cards (Bento Style) -->
+            <section id="stat-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Skeleton Card 1 -->
+                <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/15 flex flex-col justify-between animate-pulse">
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 rounded-xl bg-surface-container-low"></div>
+                        <div class="w-14 h-6 rounded-full bg-surface-container-low"></div>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="h-3 w-24 rounded bg-surface-container-low"></div>
+                        <div class="h-7 w-20 rounded bg-surface-container-low"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 2 -->
+                <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/15 flex flex-col justify-between animate-pulse">
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 rounded-xl bg-surface-container-low"></div>
+                        <div class="w-14 h-6 rounded-full bg-surface-container-low"></div>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="h-3 w-28 rounded bg-surface-container-low"></div>
+                        <div class="h-7 w-16 rounded bg-surface-container-low"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 3 -->
+                <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/15 flex flex-col justify-between animate-pulse">
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 rounded-xl bg-surface-container-low"></div>
+                        <div class="w-14 h-6 rounded-full bg-surface-container-low"></div>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="h-3 w-20 rounded bg-surface-container-low"></div>
+                        <div class="h-7 w-16 rounded bg-surface-container-low"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 4 -->
+                <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/15 flex flex-col justify-between animate-pulse">
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 rounded-xl bg-surface-container-low"></div>
+                        <div class="w-14 h-6 rounded-full bg-surface-container-low"></div>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="h-3 w-32 rounded bg-surface-container-low"></div>
+                        <div class="h-7 w-24 rounded bg-surface-container-low"></div>
+                    </div>
+                </div>
+            </section>
+            <!-- Main Content Area: Chart + Authors -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Platform Growth Chart (Placeholder Visual) -->
+                <section
+                    class="lg:col-span-8 bg-surface-container-lowest rounded-3xl ring-1 ring-outline-variant/15 overflow-hidden shadow-sm">
+                    <div class="p-8 border-b border-surface-container-low flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-on-surface">Platform Growth</h3>
+                            <p class="text-sm text-on-surface-variant">Views aggregate over the last 30 days</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="w-3 h-3 rounded-full bg-primary"></span>
+                            <span class="w-3 h-3 rounded-full bg-secondary-container"></span>
+                        </div>
+                    </div>
+                    <div id="growth-chart" class="p-8 h-80 flex items-end gap-2 relative animate-pulse">
+                        <!-- Skeleton Chart Bars -->
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[40%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[55%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[70%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[45%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[60%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[80%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[75%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[50%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[65%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[40%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[85%]"></div>
+                        <div class="flex-1 bg-surface-container-low rounded-t-lg h-[55%]"></div>
+                    </div>
+                    <div id="chart-labels"
+                        class="px-8 pb-8 flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span>&nbsp;</span>
+                    </div>
+                </section>
+                <!-- Trending Topics -->
+                <section class="lg:col-span-4 space-y-8">
+                    <div class="bg-surface-container-low p-8 rounded-3xl ring-1 ring-outline-variant/15">
+                        <h3 class="text-xl font-bold text-on-surface mb-6">Trending Topics</h3>
+                        <div id="trending-topics" class="flex flex-wrap gap-2 animate-pulse">
+                            <div class="h-8 w-24 rounded-xl bg-surface-container"></div>
+                            <div class="h-8 w-16 rounded-xl bg-surface-container"></div>
+                            <div class="h-8 w-28 rounded-xl bg-surface-container"></div>
+                            <div class="h-8 w-20 rounded-xl bg-surface-container"></div>
+                            <div class="h-8 w-24 rounded-xl bg-surface-container"></div>
+                            <div class="h-8 w-18 rounded-xl bg-surface-container"></div>
+                        </div>
+                        <button
+                            class="w-full mt-8 py-3 text-sm font-bold text-primary hover:bg-primary/5 transition-colors rounded-xl border border-dashed border-primary/30">
+                            Explore All Topics
+                        </button>
+                    </div>
+                    <!-- Top Authors -->
+                    <div class="bg-surface-container-lowest p-8 rounded-3xl ring-1 ring-outline-variant/15 shadow-sm">
+                        <h3 class="text-xl font-bold text-on-surface mb-6">Top Authors</h3>
+                        <div id="top-authors" class="space-y-6 animate-pulse">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-surface-container-low"></div>
+                                    <div class="space-y-1">
+                                        <div class="h-3 w-24 rounded bg-surface-container-low"></div>
+                                        <div class="h-2 w-16 rounded bg-surface-container-low"></div>
+                                    </div>
+                                </div>
+                                <div class="space-y-1 text-right">
+                                    <div class="h-3 w-10 rounded bg-surface-container-low"></div>
+                                    <div class="h-2 w-8 rounded bg-surface-container-low"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-surface-container-low"></div>
+                                    <div class="space-y-1">
+                                        <div class="h-3 w-28 rounded bg-surface-container-low"></div>
+                                        <div class="h-2 w-20 rounded bg-surface-container-low"></div>
+                                    </div>
+                                </div>
+                                <div class="space-y-1 text-right">
+                                    <div class="h-3 w-10 rounded bg-surface-container-low"></div>
+                                    <div class="h-2 w-8 rounded bg-surface-container-low"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-surface-container-low"></div>
+                                    <div class="space-y-1">
+                                        <div class="h-3 w-20 rounded bg-surface-container-low"></div>
+                                        <div class="h-2 w-14 rounded bg-surface-container-low"></div>
+                                    </div>
+                                </div>
+                                <div class="space-y-1 text-right">
+                                    <div class="h-3 w-10 rounded bg-surface-container-low"></div>
+                                    <div class="h-2 w-8 rounded bg-surface-container-low"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- Recent Activity Tonal Shift Section -->
+            <section class="bg-surface-container-low rounded-[2rem] p-10 mt-12">
+                <div class="flex items-center justify-between mb-8">
+                    <h3 class="text-2xl font-black text-on-surface font-headline tracking-tight">Recent Editorial Updates</h3>
+                    <a class="text-primary font-bold text-sm underline decoration-primary/30 underline-offset-4" href="#">View History</a>
+                </div>
+                <div id="recent-activity" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                    <!-- Skeleton Activity Card 1 -->
+                    <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/10 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-5 h-5 rounded-full bg-surface-container-low"></div>
+                            <div class="h-2 w-16 rounded bg-surface-container-low"></div>
+                        </div>
+                        <div class="h-4 w-3/4 rounded bg-surface-container-low mb-2"></div>
+                        <div class="h-3 w-1/2 rounded bg-surface-container-low mb-4"></div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-surface-container-low"></div>
+                            <div class="h-2 w-20 rounded bg-surface-container-low"></div>
+                        </div>
+                    </div>
+                    <!-- Skeleton Activity Card 2 -->
+                    <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/10 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-5 h-5 rounded-full bg-surface-container-low"></div>
+                            <div class="h-2 w-12 rounded bg-surface-container-low"></div>
+                        </div>
+                        <div class="h-4 w-5/6 rounded bg-surface-container-low mb-2"></div>
+                        <div class="h-3 w-2/5 rounded bg-surface-container-low mb-4"></div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-surface-container-low"></div>
+                            <div class="h-2 w-24 rounded bg-surface-container-low"></div>
+                        </div>
+                    </div>
+                    <!-- Skeleton Activity Card 3 -->
+                    <div class="bg-surface-container-lowest p-6 rounded-2xl ring-1 ring-outline-variant/10 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-5 h-5 rounded-full bg-surface-container-low"></div>
+                            <div class="h-2 w-14 rounded bg-surface-container-low"></div>
+                        </div>
+                        <div class="h-4 w-2/3 rounded bg-surface-container-low mb-2"></div>
+                        <div class="h-3 w-1/3 rounded bg-surface-container-low mb-4"></div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-surface-container-low"></div>
+                            <div class="h-2 w-28 rounded bg-surface-container-low"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <!-- Floating Action Button (Only on Mobile-ish View) -->
+        <button
+            class="md:hidden fixed bottom-24 right-8 w-14 h-14 bg-primary text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-[100]">
+            <span class="material-symbols-outlined" data-icon="add">add</span>
+        </button>
+    </main>
+    <!-- BottomNavBar (Authority: JSON & Contextual Relevance) - ONLY VISIBLE ON MOBILE -->
+    <nav
+        class="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 flex justify-around items-center h-16 px-4 z-50">
+        <a class="flex flex-col items-center justify-center text-primary font-bold" href="./dashboard.html">
+            <span class="material-symbols-outlined" data-icon="dashboard"
+                style="font-variation-settings: 'FILL' 1;">dashboard</span>
+            <span class="text-[10px]">Home</span>
+        </a>
+        <a class="flex flex-col items-center justify-center text-slate-500" href="./content.html">
+            <span class="material-symbols-outlined" data-icon="description">description</span>
+            <span class="text-[10px]">Posts</span>
+        </a>
+        <a class="flex flex-col items-center justify-center text-slate-500" href="./users.html">
+            <span class="material-symbols-outlined" data-icon="group">group</span>
+            <span class="text-[10px]">Users</span>
+        </a>
+        <a class="flex flex-col items-center justify-center text-slate-500" href="./analytics.html">
+            <span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+            <span class="text-[10px]">Data</span>
+        </a>
+
+    </nav>
+    <script src="./js/config.js"></script>
+    <script src="./js/dashboard.js"></script>
+    <script src="./js/ui.js"></script>
+</body>
+
+</html>

@@ -35,7 +35,7 @@ const LandingPage: React.FC = () => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { 
+      transition: {
         delayChildren: 0.3,
         staggerChildren: 0.2,
        },
@@ -66,14 +66,14 @@ const LandingPage: React.FC = () => {
           onAnimationComplete={() => setIsBackgroundActive(true)}
         >
           <motion.div
-            animate={{ 
+            animate={{
               scale: [1, 1.02, 1, 1.01, 1],
               rotate: [0, 0.5, 0, -0.3, 0]
             }}
-            transition={{ 
-              duration: 20, 
-              ease: easeInOut, 
-              repeat: Infinity 
+            transition={{
+              duration: 20,
+              ease: easeInOut,
+              repeat: Infinity
             }}
             className="absolute inset-0"
           >
@@ -87,7 +87,7 @@ const LandingPage: React.FC = () => {
             />
           </motion.div>
         </motion.div>
-        
+
         {/* Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/10 to-white/60" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/90" />
@@ -165,7 +165,7 @@ const LandingPage: React.FC = () => {
                     Start Reading <ArrowRight className="ml-2 inline h-5 w-5" />
                   </button>
                 </SignInButton>
-              </SignedOut>              
+              </SignedOut>
             </motion.div>
           </motion.section>
         )}

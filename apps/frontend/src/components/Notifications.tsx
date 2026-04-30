@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import {
   Bell,
   X,
@@ -13,7 +14,6 @@ import { NotiButton } from "@/components/ui/notiButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scrollarea";
-import { useAuth } from "@clerk/clerk-react";
 
 interface Notification {
   id: string;
@@ -33,260 +33,102 @@ const iconMap: Record<string, React.ElementType> = {
   Gift,
 };
 
+const API_BASE = import.meta.env.VITE_API_URL;
+const POLL_INTERVAL = 30_000; // 30 seconds
+
 export function Notifications() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [count, setCount] = useState(0);
-  const [wsState, setWsState] = useState<number>(WebSocket.CONNECTING);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, "");
-  const { getToken, userId } = useAuth();
+  const { getToken } = useAuth();
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Get user ID and establish WebSocket connection
-  useEffect(() => {
-    const getUserAndConnect = async () => {
-      try {
-        if (!userId) return;
-        
-        const token = await getToken();
-        if (!token) {
-          fetchNotifications();
-          return;
-        }
-
-        const userRes = await fetch(`${API_BASE}/api/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json"
-          }
-        });
-
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          connectWebSocket(userData.id);
-        } else {
-          console.error("Failed to fetch user data");
-          // Fallback to HTTP polling if auth fails
-          fetchNotifications();
-        }
-      } catch (error) {
-        console.error("Error getting user  data:", error);
-        // Fallback to HTTP polling
-        fetchNotifications();
-      }
-    };
-
-    getUserAndConnect();
-
-    // Cleanup on unmount
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const connectWebSocket = (userIdParam: string) => {
-    try {
-      const wsUrl = import.meta.env.VITE_WS_URL || API_BASE.replace(/^http/, 'ws');
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      // Keep track of ping/pong for connection health
-      let pingInterval: NodeJS.Timeout | null = null;
-      let pongTimeout: NodeJS.Timeout | null = null;
-
-      const startPingInterval = () => {
-        pingInterval = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('ping');
-            
-            // Set timeout for pong response
-            pongTimeout = setTimeout(() => {
-              ws.close();
-            }, 5000);
-          }
-        }, 30000); // Ping every 30 seconds
-      };
-
-      ws.onopen = () => {
-        setWsState(WebSocket.OPEN);
-        // Register user for notifications
-        ws.send(`register:${userIdParam}`);
-        // Start ping/pong mechanism
-        startPingInterval();
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = event.data;
-          
-          // Handle pong response
-          if (data === 'pong') {
-            if (pongTimeout) {
-              clearTimeout(pongTimeout);
-              pongTimeout = null;
-            }
-            return;
-          }
-
-          // Handle ping from server
-          if (data === 'ping') {
-            ws.send('pong');
-            return;
-          }
-
-          // Handle JSON messages
-          const parsedData = JSON.parse(data);
-          
-          if (parsedData.type === 'initial_notifications' || parsedData.type === 'notification_update') {
-            setNotifications(parsedData.notifications);
-            setCount(parsedData.unreadCount);
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
-
-      ws.onclose = () => {
-        setWsState(WebSocket.CLOSED);
-        
-        // Clean up intervals and timeouts
-        if (pingInterval) {
-          clearInterval(pingInterval);
-          pingInterval = null;
-        }
-        if (pongTimeout) {
-          clearTimeout(pongTimeout);
-          pongTimeout = null;
-        }
-        
-        // Attempt to reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket(userIdParam);
-        }, 3000);
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        
-        // Clean up intervals and timeouts on error
-        if (pingInterval) {
-          clearInterval(pingInterval);
-          pingInterval = null;
-        }
-        if (pongTimeout) {
-          clearTimeout(pongTimeout);
-          pongTimeout = null;
-        }
-      };
-
-    } catch (error) {
-      console.error('Error creating WebSocket connection:', error);
-      // Fallback to HTTP polling
-      fetchNotifications();
-    }
-  };
-
-  const fetchNotifications = async () => {
+  // Fetch notifications via HTTP
+  const fetchNotifications = useCallback(async () => {
     try {
       const token = await getToken();
       if (!token) return;
 
       const res = await fetch(`${API_BASE}/api/user/notifications`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json"
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch notifications");
+      if (!res.ok) return;
+
       const data = await res.json();
-
-      if (!data.notifications) throw new Error("Invalid response structure");
-
-      setNotifications(data.notifications);
-      setCount(data.notifications.filter((n: Notification) => !n.read).length);
+      if (data.notifications) {
+        setNotifications(data.notifications);
+        setCount(data.unreadCount ?? data.notifications.filter((n: Notification) => !n.read).length);
+      }
     } catch (e) {
       console.error("Error fetching notifications:", e);
     }
-  };
+  }, [getToken]);
+
+  // Initial fetch + polling for unread count
+  useEffect(() => {
+    fetchNotifications();
+
+    pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [fetchNotifications]);
 
   const handleClick = async () => {
     const newIsOpen = !isOpen;
     setIsOpen(newIsOpen);
 
-    if (newIsOpen && count > 0) {
-      try {
-        const token = await getToken();
-        // Mark all as read
-        const patchRes = await fetch(`${API_BASE}/api/user/notifications/read-all`, {
-            method: "PATCH",
-            headers: { 
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json"
-            },
-          }
-        );
-        
-        if (!patchRes.ok) throw new Error("Failed to mark notifications as read");
-        
-        // Update local state immediately for better UX
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        setCount(0);
-        
-        // If WebSocket is not connected, manually update the state
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {          
-          // Also refetch to ensure consistency
+    if (newIsOpen) {
+      // Refresh notifications when opening
+      await fetchNotifications();
+
+      if (count > 0) {
+        try {
           const token = await getToken();
-          const res = await fetch(`${API_BASE}/api/user/notifications`, {
-            method: "GET",
+          if (!token) return;
+
+          const patchRes = await fetch(`${API_BASE}/api/user/notifications/read-all`, {
+            method: "PATCH",
             headers: {
               Authorization: `Bearer ${token}`,
-              Accept: "application/json"
-            }
+              "Content-Type": "application/json",
+            },
           });
-          const data = await res.json();
 
-          if (data.notifications) {
-            setNotifications(data.notifications);
+          if (patchRes.ok) {
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             setCount(0);
           }
+        } catch (e) {
+          console.error("Error marking notifications as read:", e);
         }
-        // If WebSocket is connected, the update will come via WebSocket message
-
-      } catch (e) {
-        console.error("Error updating notifications:", e);
       }
     }
   };
 
   const deleteNotification = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // prevent clicking through to the notification itself (if it becomes clickable later)
+    e.stopPropagation();
     try {
-      // Optimistically update UI
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      
       const token = await getToken();
+      if (!token) return;
+
+      // Optimistic removal
+      const wasUnread = notifications.find(n => n.id === id && !n.read);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      if (wasUnread) setCount(prev => Math.max(0, prev - 1));
+
       const res = await fetch(`${API_BASE}/api/user/notifications/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json"
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (!res.ok) {
-        throw new Error("Failed to delete notification");
+        // Revert on failure
+        await fetchNotifications();
       }
     } catch (err) {
       console.error("Error deleting notification:", err);
-      // Revert optimism if needed (complex, so relying on WS update to fix it eventually is fine)
-      fetchNotifications();
+      await fetchNotifications();
     }
   };
 
@@ -301,29 +143,17 @@ export function Notifications() {
       >
         <Bell size={16} strokeWidth={2} aria-hidden="true" />
         {count > 0 && (
-          <Badge className="absolute -top-2 left-full min-w-5 -translate-x-1/2 px-1 bg-red-500 text-white font-bold border-none hover:bg-red-600">
+          <Badge className="absolute -top-2 left-full min-w-5 -translate-x-1/2 px-1">
             {count > 99 ? "99+" : count}
           </Badge>
         )}
       </NotiButton>
 
       {isOpen && (
-        <Card className="absolute right-0 mt-2 w-[90vw] max-w-md sm:w-96 z-50 shadow-lg bg-surface-container-lowest border border-outline-variant/30">
+        <Card className="absolute right-0 mt-2 w-[90vw] max-w-md sm:w-96 z-50 shadow-lg">
           <div className="relative flex items-center justify-between px-4 py-0 border-b border-gray-100 mb-2 pb-2">
             <CardTitle className="text-sm font-medium px-3 flex items-center gap-2 mt-3">
               Notifications
-              <span 
-                className={`inline-block w-2 h-2 rounded-full ${
-                  wsState === WebSocket.OPEN ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 
-                  wsState === WebSocket.CONNECTING ? 'bg-amber-400 animate-pulse' : 
-                  'bg-red-500'
-                }`} 
-                title={
-                  wsState === WebSocket.OPEN ? 'Live updates connected' : 
-                  wsState === WebSocket.CONNECTING ? 'Connecting...' : 
-                  'Disconnected - using HTTP polling'
-                } 
-              />
             </CardTitle>
             <NotiButton
               variant="ghost"
@@ -368,7 +198,7 @@ export function Notifications() {
                               {notification.date}
                             </p>
                           </div>
-                          
+
                           <div className="flex flex-col items-end gap-2 shrink-0">
                             {!notification.read && (
                               <div className="w-2 h-2 bg-blue-500 rounded-full" title="Unread" />

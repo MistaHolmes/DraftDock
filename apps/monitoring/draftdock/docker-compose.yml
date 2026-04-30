@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  draftdock-monitor:
+    build: .
+    container_name: draftdock-monitor
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      - DASHBOARD_PORT=4001
+      - BE_URL=${BE_URL}
+      - FE_URL=${FE_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - REDIS_URL=${REDIS_URL}
+      - EC2_INSTANCE_IPS=${EC2_INSTANCE_IPS}
+      - EC2_SSH_KEY=/ec2-keys/draftdock.pem
+      - EC2_SSH_USER=${EC2_SSH_USER}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - ALERT_TO=${ALERT_TO}
+    volumes:
+      - ../../backend/ansible/.key/draftdock.pem:/ec2-keys/draftdock.pem:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+services:
+  draftdock-monitoring:
+    build: .
+    container_name: draftdock_monitoring_service
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Mount the EC2 SSH key into the container at the path config.ts expects
+      - ../../backend/ansible/.key/draftdock.pem:/ec2-keys/draftdock.pem:ro
+    environment:
+      - EC2_SSH_KEY=/ec2-keys/draftdock.pem
+      - EC2_SSH_USER=ubuntu

@@ -1,0 +1,156 @@
+# ============================================================
+# DraftDock — HTTP-only name-based virtual hosts (port 80)
+# Cloudflare (orange-cloud / proxied) terminates browser TLS.
+# Origin only serves plain HTTP.  Set Cloudflare SSL → Flexible.
+# ============================================================
+
+# ---------- API ----------
+server {
+    listen 80;
+    server_name {{ domains.user_be }};
+
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ api_port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout    300s;
+    }
+}
+
+# ---------- WebSocket ----------
+server {
+    listen 80;
+    server_name {{ domains.user_be_ws }};
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ ws_port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout    600s;
+    }
+}
+
+# ---------- Collab WebSocket ----------
+server {
+    listen 80;
+    server_name {{ domains.user_be_collab }};
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ collab_port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout    3600s;
+        proxy_send_timeout    3600s;
+        proxy_buffering off;
+    }
+}
+
+# ============================================================
+# HTTPS server blocks (port 443) — Origin cert from Cloudflare
+# Cloudflare SSL = Full  →  edge connects to origin on 443
+# ============================================================
+
+# ---------- API (HTTPS) ----------
+server {
+    listen 443 ssl http2;
+    server_name {{ domains.user_be }};
+
+    ssl_certificate     /etc/ssl/draftdock/fullchain.pem;
+    ssl_certificate_key /etc/ssl/draftdock/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ api_port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout    300s;
+    }
+}
+
+# ---------- WebSocket (HTTPS) ----------
+server {
+    listen 443 ssl http2;
+    server_name {{ domains.user_be_ws }};
+
+    ssl_certificate     /etc/ssl/draftdock/fullchain.pem;
+    ssl_certificate_key /etc/ssl/draftdock/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ ws_port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout    600s;
+    }
+}
+
+# ---------- Collab WebSocket (HTTPS) ----------
+server {
+    listen 443 ssl http2;
+    server_name {{ domains.user_be_collab }};
+
+    ssl_certificate     /etc/ssl/draftdock/fullchain.pem;
+    ssl_certificate_key /etc/ssl/draftdock/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{ collab_port }};
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        $connection_upgrade;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout    3600s;
+        proxy_send_timeout    3600s;
+        proxy_buffering off;
+    }
+}

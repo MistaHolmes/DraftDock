@@ -1,0 +1,201 @@
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique @map("clerk_id")
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projects  Project[]
+  tasks     Task[]
+  approvals Approval[]
+
+  @@map("users")
+}
+
+model Project {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  name         String
+  description  String?
+  templateType String   @default("react-node") @map("template_type")
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  settings         ProjectSettings?
+  tasks            Task[]
+  projectFiles     ProjectFile[]
+  runs             Run[]
+  runtimeSessions  RuntimeSession[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+model ProjectSettings {
+  id           String   @id @default(uuid())
+  projectId    String   @unique @map("project_id")
+  runtime      String   @default("webcontainer")
+  installCmd   String   @default("npm install") @map("install_cmd")
+  startCmd     String   @default("npm run dev") @map("start_cmd")
+  buildCmd     String   @default("npm run build") @map("build_cmd")
+  templateName String   @default("react-node") @map("template_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_settings")
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  prompt    String
+  status    String   @default("pending")
+  planJson  Json?    @map("plan_json")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps           TaskStep[]
+  fileVersions    FileVersion[]
+  approvals       Approval[]
+  runs            Run[]
+  runtimeSessions RuntimeSession[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("tasks")
+}
+
+model TaskStep {
+  id          String   @id @default(uuid())
+  taskId      String   @map("task_id")
+  stepType    String   @map("step_type")
+  title       String
+  description String?
+  status      String   @default("pending")
+  orderIndex  Int      @default(0) @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_steps")
+}
+
+model ProjectFile {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  path        String
+  language    String?
+  contentHash String?  @map("content_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions FileVersion[]
+
+  @@unique([projectId, path])
+  @@map("project_files")
+}
+
+model FileVersion {
+  id            String   @id @default(uuid())
+  projectFileId String   @map("project_file_id")
+  taskId        String?  @map("task_id")
+  versionNumber Int      @default(1) @map("version_number")
+  content       String
+  diffText      String?  @map("diff_text")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  projectFile ProjectFile @relation(fields: [projectFileId], references: [id], onDelete: Cascade)
+  task        Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([projectFileId])
+  @@map("file_versions")
+}
+
+model Approval {
+  id         String    @id @default(uuid())
+  taskId     String    @map("task_id")
+  userId     String    @map("user_id")
+  approved   Boolean   @default(false)
+  approvedAt DateTime? @map("approved_at")
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("approvals")
+}
+
+model Run {
+  id         String    @id @default(uuid())
+  taskId     String    @map("task_id")
+  projectId  String    @map("project_id")
+  status     String    @default("pending")
+  previewUrl String?   @map("preview_url")
+  startedAt  DateTime? @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  exitCode   Int?      @map("exit_code")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  task    Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  logs    RunLog[]
+
+  @@index([taskId])
+  @@index([projectId])
+  @@map("runs")
+}
+
+model RunLog {
+  id         String   @id @default(uuid())
+  runId      String   @map("run_id")
+  streamType String   @map("stream_type")
+  message    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  run Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("run_logs")
+}
+
+model RuntimeSession {
+  id         String   @id @default(uuid())
+  projectId  String   @map("project_id")
+  taskId     String?  @map("task_id")
+  sessionKey String   @unique @map("session_key")
+  previewUrl String?  @map("preview_url")
+  status     String   @default("active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task    Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@map("runtime_sessions")
+}

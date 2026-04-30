@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Blog" ADD COLUMN IF NOT EXISTS "ydocState" BYTEA;

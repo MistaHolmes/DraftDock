@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DraftDock | Editorial Canvas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Manrope:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#e6c5ff",
+              "surface-container-low": "#eef1f3",
+              "on-tertiary-fixed-variant": "#711036",
+              "tertiary-dim": "#8e294c",
+              "background": "#f5f7f9",
+              "on-surface": "#2c2f31",
+              "tertiary": "#9e3657",
+              "primary-container": "#b28cff",
+              "outline-variant": "#abadaf",
+              "surface-dim": "#d0d5d8",
+              "secondary-dim": "#6a3599",
+              "secondary-fixed-dim": "#ddb3ff",
+              "surface-bright": "#f5f7f9",
+              "on-primary-fixed": "#000000",
+              "tertiary-fixed": "#ff8eac",
+              "primary": "#702ae1",
+              "primary-dim": "#6411d5",
+              "on-tertiary-container": "#64042d",
+              "surface-container-high": "#dfe3e6",
+              "on-secondary-container": "#612c90",
+              "on-surface-variant": "#595c5e",
+              "error": "#b41340",
+              "inverse-primary": "#a476ff",
+              "on-secondary": "#f8f0ff",
+              "surface": "#f5f7f9",
+              "inverse-on-surface": "#9a9d9f",
+              "primary-fixed-dim": "#a67aff",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-fixed": "#380016",
+              "surface-tint": "#702ae1",
+              "surface-container": "#e5e9eb",
+              "secondary-fixed": "#e6c5ff",
+              "outline": "#747779",
+              "on-error": "#ffefef",
+              "on-secondary-fixed": "#4d137b",
+              "error-dim": "#a70138",
+              "on-primary-fixed-variant": "#390083",
+              "on-secondary-fixed-variant": "#6b369a",
+              "tertiary-fixed-dim": "#f77c9e",
+              "primary-fixed": "#b28cff",
+              "on-primary": "#f8f0ff",
+              "surface-container-highest": "#d9dde0",
+              "error-container": "#f74b6d",
+              "surface-variant": "#d9dde0",
+              "tertiary-container": "#ff8eac",
+              "secondary": "#7742a6",
+              "on-primary-container": "#2e006c",
+              "on-error-container": "#510017",
+              "on-background": "#2c2f31",
+              "on-tertiary": "#ffeff1",
+              "inverse-surface": "#0b0f10"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Manrope', sans-serif;
+        background-color: #f5f7f9;
+        color: #2c2f31;
+      }
+      h1, h2, h3, .font-headline {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full z-40 flex flex-col p-4 bg-[#eef1f3] dark:bg-slate-900 w-64 border-r-0">
+<div class="mb-8 px-4">
+<div class="flex items-center gap-2">
+<span class="text-xl font-bold text-[#702ae1] dark:text-[#b28cff] tracking-tight">DraftDock</span>
+</div>
+<p class="text-xs font-semibold text-slate-500 mt-1">Editorial Canvas</p>
+</div>
+<button class="mb-8 mx-2 flex items-center justify-center gap-2 bg-primary text-on-primary py-3 rounded-full font-semibold transition-all hover:bg-primary-dim active:scale-95 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 600;">add</span>
+            Write
+        </button>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-[#702ae1] dark:text-[#b28cff] bg-white/50 dark:bg-white/5 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="text-xs font-semibold">Drafts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-white/30 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="text-xs font-semibold">Published</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-white/30 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-xs font-semibold">Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-white/30 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">book_2</span>
+<span class="text-xs font-semibold">Library</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-white/30 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-xs font-semibold">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-slate-200 dark:border-slate-800">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-white/30 dark:hover:bg-white/10 transition-colors" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="text-xs font-semibold">Help</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full pl-72 pr-8 z-30 sticky top-0 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xl h-16 shadow-sm shadow-slate-200/50 dark:shadow-none">
+<div class="flex items-center flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary/20" placeholder="Search your drafts..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-[#702ae1] transition-colors opacity-80 active:opacity-100">Preview</button>
+<button class="px-6 py-2 bg-primary text-on-primary rounded-xl text-sm font-bold shadow-sm hover:bg-primary-dim transition-all active:scale-95">Publish</button>
+</div>
+<div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-800 pl-4">
+<button class="text-slate-500 hover:text-[#702ae1] transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-tertiary rounded-full"></span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+<img class="w-full h-full object-cover" data-alt="portrait of a professional creative writer in a bright studio with minimalist aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWaYGHyL0s_MnDZ21vUZXAfit_jb8KO5k58zfCLSRRqAwirHi38IlwoPQhzGqbWbP-_0qVqs2phm5ZmvvbDVFYxKIs7X-TxEV3st3FtkimLHz0j_b5dXNtxdc5vceTHruGqv_hHupsXMJl3DzkfU-_xuT9b_7cFW6zdKyGVPEse8A-FPuUhONE3aETlIOSliUFagtRKelMMdxdGY_ilnb6fR6JTADjv3G5a883DInxSygryuey8RBe6HPjIKmRc2NRRti2Wd4buO0t"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Editorial Canvas -->
+<main class="pl-64 pt-6 min-h-[calc(100vh-64px)] flex flex-col">
+<!-- Toolbar Container -->
+<div class="px-8 mb-6">
+<div class="bg-surface-container-lowest rounded-xl p-2 flex items-center justify-between shadow-sm border border-outline-variant/10">
+<div class="flex items-center gap-1">
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors">
+<span class="material-symbols-outlined">format_bold</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors">
+<span class="material-symbols-outlined">format_italic</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors border-r border-slate-100 mr-1 pr-3">
+<span class="material-symbols-outlined">link</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors">
+<span class="material-symbols-outlined">title</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors">
+<span class="material-symbols-outlined">format_quote</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors">
+<span class="material-symbols-outlined">format_list_bulleted</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors border-r border-slate-100 mr-1 pr-3">
+<span class="material-symbols-outlined">image</span>
+</button>
+<button class="p-2 hover:bg-secondary-container/30 rounded-lg text-slate-600 transition-colors">
+<span class="material-symbols-outlined">code</span>
+</button>
+</div>
+<div class="flex items-center gap-3 px-3">
+<span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Word Count: 482</span>
+<div class="h-4 w-[1px] bg-slate-200"></div>
+<span class="text-[10px] font-semibold uppercase tracking-wider text-primary">Saved to cloud</span>
+</div>
+</div>
+</div>
+<!-- Split Editor Layout -->
+<div class="flex-1 px-8 pb-8 flex gap-8">
+<!-- Input Area (Markdown Canvas) -->
+<section class="flex-1 bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/5 flex flex-col overflow-hidden">
+<div class="p-10 flex-1 overflow-y-auto no-scrollbar">
+<input class="w-full text-4xl font-extrabold font-headline text-on-surface border-none focus:ring-0 p-0 mb-8 placeholder:text-slate-300" placeholder="Enter title..." type="text" value="The Art of Modern Curation"/>
+<textarea class="w-full flex-1 border-none focus:ring-0 p-0 text-lg leading-relaxed text-slate-600 font-body resize-none min-h-[500px]" placeholder="Start your masterpiece here using markdown..."># The Intersection of Design and Narrative
+
+In the realm of modern digital products, the line between **functionality** and **storytelling** has blurred. We no longer just use tools; we inhabit environments.
+
+## The Curator's Eye
+To curate is to care. When we design interfaces for writers, we aren't just building text boxes. We are crafting a quiet studio where ideas can breathe.
+
+### Key Principles:
+- Tonal layering over hard borders.
+- Asymmetrical balance.
+- Intentional whitespace.
+
+&gt; "Design is not just what it looks like and feels like. Design is how it works." — Steve Jobs
+
+The editorial experience at DraftDock aims to honor this sentiment by providing a canvas that disappears, leaving only the creator and their craft.</textarea>
+</div>
+</section>
+<!-- Preview Area (Live Render) -->
+<section class="flex-1 bg-surface-container-low rounded-2xl flex flex-col overflow-hidden">
+<div class="px-6 py-3 border-b border-white/20 flex items-center justify-between">
+<span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Live Preview</span>
+<div class="flex gap-1">
+<div class="w-2 h-2 rounded-full bg-slate-300"></div>
+<div class="w-2 h-2 rounded-full bg-slate-300"></div>
+<div class="w-2 h-2 rounded-full bg-slate-300"></div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-10 bg-white shadow-inner m-4 rounded-xl no-scrollbar">
+<article class="prose max-w-none">
+<h1 class="text-4xl font-extrabold font-headline mb-8 text-on-surface">The Art of Modern Curation</h1>
+<div class="w-full aspect-video rounded-xl mb-8 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="overhead shot of a minimalist workspace with a laptop, fountain pen, and a cup of coffee on a gray textured surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1q_TxAl9MkRPGVl7Qav4M8BArbhZwObez5vEpH8hGiROwAvsrKLZqk1_R13-Gy3kDuXKzBiwvHsvBZyhw_0osHpBZpfn3KTiNxdN1l_tV3C4WU90VGAxhuxOVIvd919v1lQwlvMg1gBbJJjAELpHu8x8xM_ShbbqNNhXooJk_nmBefew4EOKhCC-zwjERZFI8gxn1tWBEtz92YWEoEoX-wuKBDsLfNYNcCbPo6HhwE4zetbmB6uPp_Za6piQhZWpzwKFkqUtzNTDj"/>
+</div>
+<h2 class="text-2xl font-bold font-headline text-primary mb-4">The Intersection of Design and Narrative</h2>
+<p class="text-lg leading-relaxed text-slate-700 mb-6">
+                            In the realm of modern digital products, the line between <span class="font-bold">functionality</span> and <span class="font-bold">storytelling</span> has blurred. We no longer just use tools; we inhabit environments.
+                        </p>
+<h3 class="text-xl font-bold font-headline text-on-surface mb-3">The Curator's Eye</h3>
+<p class="text-lg leading-relaxed text-slate-700 mb-6">
+                            To curate is to care. When we design interfaces for writers, we aren't just building text boxes. We are crafting a quiet studio where ideas can breathe.
+                        </p>
+<ul class="space-y-2 mb-8 list-none">
+<li class="flex items-center gap-3 text-slate-700">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                Tonal layering over hard borders.
+                            </li>
+<li class="flex items-center gap-3 text-slate-700">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                Asymmetrical balance.
+                            </li>
+<li class="flex items-center gap-3 text-slate-700">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                Intentional whitespace.
+                            </li>
+</ul>
+<blockquote class="border-l-4 border-primary pl-6 py-2 italic text-slate-600 bg-secondary-container/10 rounded-r-lg mb-8">
+                            "Design is not just what it looks like and feels like. Design is how it works." — Steve Jobs
+                        </blockquote>
+<p class="text-lg leading-relaxed text-slate-700">
+                            The editorial experience at DraftDock aims to honor this sentiment by providing a canvas that disappears, leaving only the creator and their craft.
+                        </p>
+</article>
+</div>
+</section>
+</div>
+</main>
+<!-- Contextual AI Assistant Panel (Hidden by default, triggered by focus) -->
+<div class="fixed right-6 bottom-6 flex flex-col items-end gap-3 z-50">
+<div class="bg-surface-container-lowest shadow-xl border border-outline-variant/20 rounded-2xl w-80 p-5 hidden md:block">
+<div class="flex items-center gap-2 mb-4">
+<div class="w-8 h-8 rounded-lg bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container text-sm" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<h4 class="text-xs font-bold font-headline">Editorial Assistant</h4>
+<p class="text-[10px] text-slate-400">Ready to polish your prose</p>
+</div>
+</div>
+<div class="space-y-2">
+<button class="w-full text-left px-3 py-2 text-xs rounded-lg bg-surface hover:bg-secondary-container/20 border border-slate-100 transition-colors flex items-center justify-between group">
+<span>Suggest stronger title</span>
+<span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100">chevron_right</span>
+</button>
+<button class="w-full text-left px-3 py-2 text-xs rounded-lg bg-surface hover:bg-secondary-container/20 border border-slate-100 transition-colors flex items-center justify-between group">
+<span>Analyze tone: Professional</span>
+<span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100">chevron_right</span>
+</button>
+<button class="w-full text-left px-3 py-2 text-xs rounded-lg bg-surface hover:bg-secondary-container/20 border border-slate-100 transition-colors flex items-center justify-between group">
+<span>Generate meta description</span>
+<span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100">chevron_right</span>
+</button>
+</div>
+</div>
+<button class="w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group">
+<span class="material-symbols-outlined group-hover:rotate-12 transition-transform">auto_awesome</span>
+</button>
+</div>
+</body></html>

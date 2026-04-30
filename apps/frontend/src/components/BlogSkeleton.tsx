@@ -23,12 +23,12 @@ const BlogSkeleton: React.FC<BlogSkeletonProps> = ({ variant = "small" }) => {
   ];
 
   const extraLinesLarge = [
-    <Skeleton key="extra3" className="h-5 w-full mb-2" />,
-    <Skeleton key="extra4" className="h-5 w-4/6 mb-2" />,
-    <Skeleton key="extra5" className="h-5 w-3/4 mb-2" />,
-    <Skeleton key="extra6" className="h-5 w-3/4 mb-2" />,
-    <Skeleton key="extra7" className="h-5 w-3/4 mb-2" />,
-    <Skeleton key="extra8" className="h-5 w-3/4 mb-2" />,
+    <Skeleton key="large1" className="h-5 w-full mb-2" />,
+    <Skeleton key="large2" className="h-5 w-4/6 mb-2" />,
+    <Skeleton key="large3" className="h-5 w-3/4 mb-2" />,
+    <Skeleton key="large4" className="h-5 w-3/4 mb-2" />,
+    <Skeleton key="large5" className="h-5 w-3/4 mb-2" />,
+    <Skeleton key="large6" className="h-5 w-3/4 mb-2" />,
   ];
 
   let skeletons = baseLines;
@@ -40,8 +40,13 @@ const BlogSkeleton: React.FC<BlogSkeletonProps> = ({ variant = "small" }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md mb-6 w-full max-w-4xl mx-auto">
-      {skeletons}
+    <div className="p-6 mb-6 w-full max-w-4xl mx-auto bg-transparent">
+      {variant !== "small" && (
+        <div className="w-full h-64 rounded-md mb-6 bg-gray-200 dark:bg-[rgba(255,255,255,0.04)] animate-pulse" />
+      )}
+      <div className="space-y-2">
+        {skeletons}
+      </div>
     </div>
   );
 };

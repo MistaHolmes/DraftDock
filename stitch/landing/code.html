@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-highest": "#e2e2e2",
+              "surface-dim": "#dadada",
+              "primary": "#000000",
+              "surface-tint": "#5e5e5e",
+              "on-primary": "#e2e2e2",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-fixed-variant": "#e5e2e1",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary-fixed": "#5f5e5e",
+              "primary-fixed-dim": "#474747",
+              "on-primary-fixed": "#ffffff",
+              "tertiary-fixed-dim": "#474746",
+              "on-tertiary": "#e5e2e1",
+              "primary-fixed": "#5e5e5e",
+              "tertiary": "#3c3b3b",
+              "on-surface-variant": "#474747",
+              "primary-container": "#3b3b3b",
+              "inverse-surface": "#2f3131",
+              "surface-container-low": "#f3f3f3",
+              "secondary-fixed-dim": "#acabab",
+              "outline-variant": "#c6c6c6",
+              "on-secondary-container": "#1b1c1c",
+              "on-secondary-fixed": "#1b1c1c",
+              "error-container": "#ffdad6",
+              "tertiary-container": "#757474",
+              "on-surface": "#1a1c1c",
+              "secondary": "#5f5e5e",
+              "on-primary-container": "#ffffff",
+              "surface-container-high": "#e8e8e8",
+              "surface": "#f9f9f9",
+              "on-secondary": "#ffffff",
+              "on-error": "#ffffff",
+              "secondary-container": "#d6d4d3",
+              "background": "#f9f9f9",
+              "on-secondary-fixed-variant": "#3b3b3b",
+              "surface-bright": "#f9f9f9",
+              "secondary-fixed": "#c8c6c6",
+              "on-tertiary-fixed": "#ffffff",
+              "on-background": "#1a1c1c",
+              "surface-variant": "#e2e2e2",
+              "surface-container": "#eeeeee",
+              "outline": "#777777",
+              "on-primary-fixed-variant": "#e2e2e2",
+              "error": "#ba1a1a",
+              "on-error-container": "#410002",
+              "on-tertiary-container": "#ffffff",
+              "inverse-primary": "#c6c6c6"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .drafting-grid {
+            background-size: 40px 40px;
+            background-image: radial-gradient(circle, #c6c6c6 1px, transparent 1px);
+            opacity: 0.15;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .typewriter::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { color: transparent; }
+            50% { color: black; }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 h-16 flex justify-center">
+<div class="flex justify-between items-center h-full px-6 md:px-12 w-full max-w-screen-2xl">
+<div class="text-xl font-black tracking-tighter text-black dark:text-white uppercase font-headline">
+                DraftDock
+            </div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-black dark:text-white font-bold border-b-2 border-black dark:border-white pb-1 font-label text-sm uppercase tracking-widest" href="#">Product</a>
+<a class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors font-label text-sm uppercase tracking-widest" href="#">Docs</a>
+<a class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors font-label text-sm uppercase tracking-widest" href="#">Pricing</a>
+<a class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors font-label text-sm uppercase tracking-widest" href="#">Changelog</a>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 font-bold uppercase text-xs tracking-widest hover:opacity-70 transition-opacity active:scale-95 duration-100">
+                Sign In
+            </button>
+</div>
+</nav>
+<!-- Hero Section -->
+<main class="relative pt-32 pb-24 min-h-screen flex flex-col items-center justify-center overflow-hidden">
+<div class="absolute inset-0 drafting-grid pointer-events-none"></div>
+<div class="relative z-10 text-center px-6 max-w-4xl mx-auto">
+<div class="inline-block bg-surface-container-highest px-3 py-1 mb-8">
+<span class="text-[10px] font-bold tracking-[0.2em] uppercase text-primary">System v2.4.0 Running</span>
+</div>
+<h1 class="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter uppercase mb-6 typewriter">
+                DraftDock.app
+            </h1>
+<p class="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto mb-12 font-light tracking-tight">
+                A collaborative space for evolving Performance in real time. Precision-engineered for the modern architect of words.
+            </p>
+<div class="flex flex-col md:flex-row items-center justify-center gap-4">
+<button class="w-full md:w-auto px-10 py-5 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold uppercase tracking-widest text-sm hover:opacity-90 transition-all">
+                    Start Drafting
+                </button>
+<button class="w-full md:w-auto px-10 py-5 border border-primary text-primary font-bold uppercase tracking-widest text-sm hover:bg-primary hover:text-on-primary transition-all">
+                    Start Reading
+                </button>
+</div>
+</div>
+<!-- Floating Decoration -->
+<div class="absolute bottom-10 right-10 hidden xl:block border border-outline-variant/30 p-4 bg-surface/50 backdrop-blur-sm">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 bg-primary animate-pulse"></div>
+<span class="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">Live Nodes: 1,284 Connected</span>
+</div>
+</div>
+</main>
+<!-- Workstation Image Section (Asymmetric) -->
+<section class="py-24 px-6 md:px-12 w-full max-w-screen-2xl mx-auto overflow-hidden">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<div class="lg:col-span-7 relative">
+<div class="aspect-video bg-surface-container-low relative overflow-hidden">
+<img alt="Minimalist workstation" class="w-full h-full object-cover grayscale opacity-80" data-alt="Ultra-minimalist workstation desk with clean white surface, single laptop, black coffee mug, and neutral walls with architectural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBM7_qmbbDsNXF60Bc6q6Evonx4eBITxlHbSBIySj1Vx0dskGuXJgdU-841a5XfegomqA7i8CL0uAqqT5daKg5hWCn6WiH_ei0Lfr23VQpIH4K3bHF-K9jhCUgb0jWE2I7NCM7yx9jPI9ylSlRT3dCpUYoNYmayZQxuAxYIJO-usZrqFL8wKgIryoYasaXdh0dyCc-Baibb1qr1h74IZ1LOa0a5Wd8g9trzerVhPiHQ9WwmZyRXk9wdquORE3VdnWmoc58vJeQqbSw"/>
+<div class="absolute inset-0 bg-primary/5"></div>
+</div>
+<!-- Technical Overlay -->
+<div class="absolute -bottom-6 -right-6 p-8 bg-surface border border-outline-variant/20 hidden md:block">
+<div class="font-mono text-[10px] space-y-2">
+<p class="text-primary font-bold">DEVICE_LATENCY: 14ms</p>
+<p class="text-on-surface-variant">SYNC_PROTOCOL: ENCRYPTED</p>
+<p class="text-on-surface-variant">UPTIME: 99.998%</p>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 lg:pl-12">
+<h2 class="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-8 leading-none">
+                    Designed for <br/>Mental Clarity.
+                </h2>
+<p class="text-on-surface-variant mb-8 leading-relaxed">
+                    We've removed the noise. No toolbars that distract, no complex menus that confuse. Just a pure drafting plane where your ideas take physical shape in high-contrast precision.
+                </p>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="architecture">architecture</span>
+<span class="font-bold uppercase text-xs tracking-widest">Architectural Grid System</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="history_edu">history_edu</span>
+<span class="font-bold uppercase text-xs tracking-widest">Ink-Ready Typography</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Core Features (Bento Grid) -->
+<section class="py-24 px-6 md:px-12 w-full max-w-screen-2xl mx-auto">
+<div class="mb-16">
+<span class="font-mono text-[10px] uppercase tracking-[0.4em] text-on-surface-variant">Module.01</span>
+<h2 class="text-4xl font-black uppercase tracking-tighter mt-2">Core Features</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Feature 1 -->
+<div class="bg-surface-container-low p-10 flex flex-col justify-between aspect-square group hover:bg-surface-container-highest transition-colors cursor-default">
+<span class="material-symbols-outlined text-4xl mb-8" data-icon="groups">groups</span>
+<div>
+<h3 class="text-xl font-bold uppercase mb-4">Real-Time Collaboration</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">Multiple architects, one drafting plane. Syncing at sub-10ms speeds for zero friction.</p>
+</div>
+</div>
+<!-- Feature 2 -->
+<div class="bg-primary text-on-primary p-10 flex flex-col justify-between aspect-square">
+<span class="material-symbols-outlined text-4xl mb-8" data-icon="code">code</span>
+<div>
+<h3 class="text-xl font-bold uppercase mb-4">Markdown Support</h3>
+<p class="text-sm text-on-primary/70 leading-relaxed">Full GFM compliance with a bespoke technical previewer designed for structural reading.</p>
+</div>
+</div>
+<!-- Feature 3 -->
+<div class="bg-surface-container-low p-10 flex flex-col justify-between aspect-square group hover:bg-surface-container-highest transition-colors cursor-default">
+<span class="material-symbols-outlined text-4xl mb-8" data-icon="version_control">deployed_code_history</span>
+<div>
+<h3 class="text-xl font-bold uppercase mb-4">Version Control</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">Immutable snapshots of your evolution. Revert or branch any thought with surgical precision.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Testimonial Section -->
+<section class="py-24 bg-surface-container-high">
+<div class="max-w-screen-xl mx-auto px-6 md:px-12 text-center">
+<div class="mb-12">
+<span class="material-symbols-outlined text-primary text-5xl" data-icon="format_quote" data-weight="fill" style="font-variation-settings: 'FILL' 1;">format_quote</span>
+</div>
+<blockquote class="text-3xl md:text-5xl font-light italic tracking-tight mb-12 text-on-surface">
+                "DraftDock is the first writing environment that respects the mathematical structure of a story. It’s an essential part of my technical workflow."
+            </blockquote>
+<div class="flex flex-col items-center">
+<div class="w-16 h-16 bg-primary mb-4 grayscale">
+<img alt="User portrait" class="w-full h-full object-cover opacity-80" data-alt="Portrait of a professional man in a dark turtleneck, clean studio lighting, high contrast monochrome aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWdNSsIipQb-1ZDVz6dpAla8uJrQSeEmdZynYrrURAp2XjRjdQ73A154QGyuVVF6irsyRq4IFTxWLHCPJt3PoEz9i5OSFSQnn1rJKYnePAbD13XNJ6EBqLom0JFCrWnNSLY9x62QG5PjQK6CwebJhc6Q3nST_-vXhA2rbHPRx7TPUlOwfPIi0RR4e-AfvUycejVtVjOrfXqnVV-s01SG0-YD-7SKxwjMFz1XKCwD54i0h4YJnooAYQbKNaAVJscVRA5zBoB-UyU1g"/>
+</div>
+<p class="font-bold uppercase text-xs tracking-[0.2em]">Julian Thorne</p>
+<p class="text-[10px] uppercase text-on-surface-variant mt-1">Lead Architect, NEXUS LABS</p>
+</div>
+</div>
+</section>
+<!-- Functional Modules (Asymmetric List) -->
+<section class="py-24 px-6 md:px-12 w-full max-w-screen-2xl mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-24">
+<div>
+<span class="font-mono text-[10px] uppercase tracking-[0.4em] text-on-surface-variant">Module.02</span>
+<h2 class="text-4xl font-black uppercase tracking-tighter mt-2 mb-12">Functional Modules</h2>
+<div class="space-y-12">
+<div class="group">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-2xl font-bold uppercase">Dynamic Export</h4>
+<span class="font-mono text-[10px] text-outline">01</span>
+</div>
+<p class="text-on-surface-variant pb-8 border-b border-outline-variant/20">Convert your drafts into high-end PDF, DOCX, or HTML with custom CSS injections.</p>
+</div>
+<div class="group">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-2xl font-bold uppercase">Semantic Search</h4>
+<span class="font-mono text-[10px] text-outline">02</span>
+</div>
+<p class="text-on-surface-variant pb-8 border-b border-outline-variant/20">Find thoughts not just by keywords, but by structural context and thematic similarity.</p>
+</div>
+<div class="group">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-2xl font-bold uppercase">Encrypted Vault</h4>
+<span class="font-mono text-[10px] text-outline">03</span>
+</div>
+<p class="text-on-surface-variant pb-8 border-b border-outline-variant/20">Enterprise-grade E2E encryption ensures your IP remains strictly yours.</p>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-center">
+<div class="w-full aspect-square bg-surface-container relative p-8">
+<div class="absolute inset-0 drafting-grid opacity-30"></div>
+<div class="relative h-full w-full border border-primary/20 flex flex-col p-12 justify-center items-center">
+<span class="material-symbols-outlined text-8xl text-primary mb-8" data-icon="token">token</span>
+<div class="text-center">
+<p class="text-3xl font-black uppercase tracking-tighter mb-4">DraftDock Enterprise</p>
+<p class="text-sm text-on-surface-variant mb-8 max-w-xs mx-auto">Scalable infrastructure for global documentation teams and technical writers.</p>
+<button class="bg-primary text-on-primary px-8 py-4 font-bold uppercase text-xs tracking-widest hover:opacity-80 transition-opacity">
+                                Inquiry Portal
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="w-full border-t border-gray-100 dark:border-gray-900 bg-white dark:bg-black tonal shift via bg-gray-50 dark:bg-zinc-950">
+<div class="flex flex-col md:flex-row justify-between items-center py-12 px-6 md:px-12 w-full max-w-screen-2xl mx-auto gap-8">
+<div class="font-black text-black dark:text-white font-headline text-lg uppercase tracking-tighter">
+                DRAFTDOCK.
+            </div>
+<div class="flex flex-wrap justify-center gap-12">
+<a class="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600 hover:text-black dark:hover:text-white transition-colors" href="#">Terms</a>
+<a class="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600 hover:text-black dark:hover:text-white transition-colors" href="#">Privacy</a>
+<a class="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600 hover:text-black dark:hover:text-white transition-colors" href="#">Github</a>
+<a class="font-mono text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-600 hover:text-black dark:hover:text-white transition-colors underline decoration-1" href="#">Status</a>
+</div>
+<div class="font-mono text-[10px] uppercase tracking-widest text-gray-400">
+                © 2024 DRAFTDOCK. ALL RIGHTS RESERVED.
+            </div>
+</div>
+</footer>
+</body></html>

@@ -1,89 +1,72 @@
 import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Ship, Search, Plus, ArrowRight, Moon, Sun, Compass } from "lucide-react";
 import { Notifications } from "../Notifications";
-import { useAuth } from "@clerk/clerk-react";
+import { ProfileButton } from "./profilebutton";
+import { useTheme } from "@/lib/ThemeContext";
 
 interface HeaderProps {
-  searchTerm?: string;
-  setSearchTerm?: (value: string) => void;
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ searchTerm, setSearchTerm }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isSignedIn } = useAuth();
-
-  const isProfile = location.pathname === "/profile";
-  const isBlogs = location.pathname === "/blogs";
-
-  const handleLogoClick = () => {
-    if (isBlogs) {
-      navigate("/landing");
-    } else if (isSignedIn) {
-      navigate("/blogs");
-    } else {
-      navigate("/landing");
-    }
-  };
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-transparent">
-      <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-        <div className="flex items-center gap-12">
-          <button
-            onClick={handleLogoClick}
-            className="text-2xl font-bold tracking-tighter text-black dark:text-white font-headline"
-          >
-            DraftDock.app
-          </button>
-          <div className="hidden md:flex items-center gap-8">
-            <button
-              onClick={() => navigate("/blogs")}
-              className={`font-medium font-headline tracking-tight transition-colors ${
-                isBlogs
-                  ? "text-black dark:text-white font-bold border-b-2 border-black dark:border-white pb-1"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"
-              }`}
-            >
-              Drafts
-            </button>
-            <button
-              onClick={() => navigate("/profile")}
-              className={`font-medium font-headline tracking-tight transition-colors ${
-                isProfile
-                  ? "text-black dark:text-white font-bold border-b-2 border-black dark:border-white pb-1"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"
-              }`}
-            >
-              My Profile
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {setSearchTerm && (
-            <div className="bg-surface-container-high px-4 py-2 rounded-lg hidden md:flex items-center gap-2">
-              <span className="material-symbols-outlined text-zinc-400 text-sm">search</span>
-              <input
-                className="bg-transparent border-none focus:ring-0 text-sm w-48 font-body outline-none"
-                placeholder="Search..."
-                type="text"
-                value={searchTerm || ""}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          )}
-          <div className="flex items-center">
-             <Notifications />
-          </div>
-          <button
-            onClick={() => navigate("/create-blog")}
-            className="bg-primary text-on-primary px-6 py-2 rounded-md font-headline font-bold text-sm hover:opacity-80 transition-all active:scale-95"
-          >
-            Write
-          </button>
-        </div>
+    <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 md:px-6 flex items-center justify-between transition-colors">
+      {/* Left: Logo */}
+      <div className="flex items-center gap-2 max-w-md flex-shrink-0">
+        <button
+          onClick={() => navigate("/landing")}
+          className="flex items-center gap-2 px-2 pl-1 text-[20px] font-semibold text-gray-900 dark:text-white font-serif tracking-tight hover:opacity-75 transition"
+        >
+          <Ship className="h-6 w-6 text-black dark:text-white" />
+          DraftDock
+        </button>
       </div>
-    </nav>
+
+      {/* Center: Search */}
+      <div className="flex-1 max-w-lg mx-4 relative">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400 pointer-events-none" />
+        <input
+          type="search"
+          placeholder="Search titles..."
+          className="flex h-9 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-1 text-sm shadow-sm transition-colors pl-9 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+        {/* Dark mode toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          aria-label="Toggle dark mode"
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
+        <div className="flex justify-end items-center">
+          <Notifications />
+        </div>
+
+        <ProfileButton variant="expandIcon" Icon={() => <Compass className="h-3 w-3 md:h-4 md:w-4" />} iconPlacement="right" onClick={() => navigate("/explore")}>
+          Explore
+        </ProfileButton>
+
+        <ProfileButton variant="expandIcon" Icon={() => <Plus className="h-3 w-3 md:h-4 md:w-4" />} iconPlacement="right" onClick={() => navigate("/create-blog")}>
+          Create
+        </ProfileButton>
+
+        <ProfileButton variant="expandIcon" Icon={() => <ArrowRight className="h-4 w-4" />} iconPlacement="right" onClick={() => navigate("/profile")}>
+          Profile
+        </ProfileButton>
+      </div>
+    </header>
   );
 };
 
